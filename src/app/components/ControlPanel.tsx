@@ -49,7 +49,7 @@ export function ControlPanel({ valveOpen, flowData, currentVariance, averageFlow
         {/* Flow Stability Sparkline */}
         <div className="flex-1 flex flex-col min-w-0">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs text-gray-400">Flow Rate (L/min)</span>
+            <span className="text-xs text-gray-400">Water Flow Rate (L/min)</span>
             <div className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
               varianceStable ? 'bg-green-900/50 text-green-400' : 'bg-orange-900/50 text-orange-400'
             }`}>
