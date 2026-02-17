@@ -7,6 +7,7 @@ interface Tank1PanelProps {
   salinity: number;
   conductivity: number;
   temperature: number;
+  connected: Record<string, boolean>;
 }
 
 export function Tank1Panel({
@@ -15,19 +16,20 @@ export function Tank1Panel({
   tds,
   salinity,
   conductivity,
-  temperature
+  temperature,
+  connected
 }: Tank1PanelProps) {
   // Determine status for each sensor
-  const phStatus = ph >= 6.5 && ph <= 7.5 ? 'safe' : 'unsafe';
-  const flowRateStatus = flowRate >= 90 && flowRate <= 120
+  const phStatus = !connected.ph ? 'offline' : ph >= 6.5 && ph <= 7.5 ? 'safe' : 'unsafe';
+  const flowRateStatus = !connected.flowRate ? 'offline' : flowRate >= 90 && flowRate <= 120
     ? 'safe'
     : flowRate > 120
     ? 'high'
     : 'low';
-  const tdsStatus = tds <= 500 ? 'safe' : 'high';
-  const salinityStatus = salinity <= 250 ? 'safe' : 'high';
-  const conductivityStatus = conductivity <= 1000 ? 'safe' : 'high';
-  const temperatureStatus = temperature >= 18 && temperature <= 28
+  const tdsStatus = !connected.tds ? 'offline' : tds <= 500 ? 'safe' : 'high';
+  const salinityStatus = !connected.salinity ? 'offline' : salinity <= 250 ? 'safe' : 'high';
+  const conductivityStatus = !connected.conductivity ? 'offline' : conductivity <= 1000 ? 'safe' : 'high';
+  const temperatureStatus = !connected.temperature ? 'offline' : temperature >= 18 && temperature <= 28
     ? 'safe'
     : temperature > 28
     ? 'high'

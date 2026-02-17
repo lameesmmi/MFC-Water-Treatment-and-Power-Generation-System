@@ -1,10 +1,10 @@
-import { CheckCircle2, XCircle, TrendingUp, TrendingDown } from 'lucide-react';
+import { CheckCircle2, XCircle, TrendingUp, TrendingDown, WifiOff } from 'lucide-react';
 
 interface SensorDisplayProps {
   label: string;
   value: number;
   unit: string;
-  status: 'safe' | 'unsafe' | 'high' | 'low';
+  status: 'safe' | 'unsafe' | 'high' | 'low' | 'offline';
   decimals?: number;
   isDerived?: boolean;
 }
@@ -51,13 +51,22 @@ export function SensorDisplay({
           icon: <TrendingDown className="w-3 h-3" />,
           label: 'LOW'
         };
+      case 'offline':
+        return {
+          bg: 'bg-muted',
+          border: 'border-border',
+          text: 'text-muted-foreground',
+          icon: <WifiOff className="w-3 h-3" />,
+          label: 'OFFLINE'
+        };
     }
   };
 
   const config = getStatusConfig();
+  const isOffline = status === 'offline';
 
   return (
-    <div className={`${config.bg} rounded-lg p-2 border ${config.border} flex flex-col justify-between`}>
+    <div className={`${config.bg} rounded-lg p-2 border ${config.border} flex flex-col justify-between ${isOffline ? 'opacity-60' : ''}`}>
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-muted-foreground truncate">
           {label}
@@ -69,7 +78,9 @@ export function SensorDisplay({
         </span>
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-xl font-bold text-foreground leading-none">{value.toFixed(decimals)}</span>
+        <span className={`text-xl font-bold leading-none ${isOffline ? 'text-muted-foreground' : 'text-foreground'}`}>
+          {isOffline ? '--' : value.toFixed(decimals)}
+        </span>
         <span className="text-[10px] text-muted-foreground">{unit}</span>
       </div>
     </div>

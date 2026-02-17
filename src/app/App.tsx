@@ -10,6 +10,10 @@ import { ThemeToggle } from '@/app/components/ThemeToggle';
 // Stage durations in seconds (simulated batch cycle)
 const STAGE_DURATIONS = [20, 30, 15]; // Pre-treatment, Treatment, Post-treatment
 
+type SensorName = 'ph' | 'flowRate' | 'tds' | 'salinity' | 'conductivity' | 'temperature' | 'voltage' | 'current' | 'totalVoltage' | 'totalCurrent';
+
+type SensorConnectionMap = Record<SensorName, boolean>;
+
 interface SensorData {
   // Tank 1 - Pre-treatment
   ph: number;
@@ -111,6 +115,54 @@ export default function App() {
     Array.from({ length: 60 }, (_, i) => ({ time: i, flow: 100 + Math.random() * 20 }))
   );
   const [historicalData, setHistoricalData] = useState<HistoricalData[]>(generateInitialHistoricalData);
+
+  // Sensor connection state — tracks whether each sensor is online
+  const [sensorConnected, setSensorConnected] = useState<SensorConnectionMap>({
+    ph: true,
+    flowRate: true,
+    tds: true,
+    salinity: true,
+    conductivity: true,
+    temperature: true,
+    voltage: true,
+    current: true,
+    totalVoltage: true,
+    totalCurrent: true,
+  });
+
+  // Simulate occasional sensor disconnections (for demo)
+  useEffect(() => {
+    const sensorNames: SensorName[] = ['ph', 'flowRate', 'tds', 'temperature', 'voltage', 'current', 'totalVoltage', 'totalCurrent'];
+
+    const interval = setInterval(() => {
+      setSensorConnected(prev => {
+        const next = { ...prev };
+        // Small chance (5%) a random sensor goes offline
+        if (Math.random() < 0.05) {
+          const sensor = sensorNames[Math.floor(Math.random() * sensorNames.length)];
+          next[sensor] = false;
+          // Derived sensors go offline if their source (tds) goes offline
+          if (sensor === 'tds') {
+            next.salinity = false;
+            next.conductivity = false;
+          }
+        }
+        // Higher chance (15%) an offline sensor comes back online
+        for (const sensor of sensorNames) {
+          if (!prev[sensor] && Math.random() < 0.15) {
+            next[sensor] = true;
+            if (sensor === 'tds') {
+              next.salinity = true;
+              next.conductivity = true;
+            }
+          }
+        }
+        return next;
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Stage progression state
   const [currentStage, setCurrentStage] = useState(1); // 0=off, 1-3=active
@@ -266,6 +318,7 @@ export default function App() {
               salinity={sensorData.salinity}
               conductivity={sensorData.conductivity}
               temperature={sensorData.temperature}
+              connected={sensorConnected}
             />
           </div>
 
@@ -273,6 +326,7 @@ export default function App() {
             <Tank2Panel
               voltage={sensorData.voltage}
               current={sensorData.current}
+              connected={sensorConnected}
             />
           </div>
 
@@ -280,6 +334,7 @@ export default function App() {
             <Tank3Panel
               totalVoltage={sensorData.totalVoltage}
               totalCurrent={sensorData.totalCurrent}
+              connected={sensorConnected}
             />
           </div>
 
