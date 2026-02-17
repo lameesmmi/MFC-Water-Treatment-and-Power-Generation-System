@@ -1,10 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Tank1Panel } from '@/app/components/Tank1Panel';
 import { Tank2Panel } from '@/app/components/Tank2Panel';
 import { Tank3Panel } from '@/app/components/Tank3Panel';
 import { PumpControlPanel } from '@/app/components/PumpControlPanel';
 import { HistoricalPanel } from '@/app/components/HistoricalPanel';
 import { StageIndicator } from '@/app/components/StageIndicator';
+import { ThemeToggle } from '@/app/components/ThemeToggle';
+
+// Stage durations in seconds (simulated batch cycle)
+const STAGE_DURATIONS = [20, 30, 15]; // Pre-treatment, Treatment, Post-treatment
 
 interface SensorData {
   // Tank 1 - Pre-treatment
@@ -14,11 +18,11 @@ interface SensorData {
   salinity: number; // derived from TDS
   conductivity: number; // derived from TDS
   temperature: number;
-  
+
   // Tank 2 - Treatment
   voltage: number;
   current: number;
-  
+
   // Tank 3 - Post-treatment/Output
   totalVoltage: number;
   totalCurrent: number;
@@ -42,7 +46,7 @@ interface HistoricalData {
 function generateInitialHistoricalData(): HistoricalData[] {
   const data: HistoricalData[] = [];
   const now = Date.now();
-  
+
   for (let i = 24; i >= 0; i--) {
     const timestamp = new Date(now - i * 60 * 60 * 1000);
     const tds = 300 + Math.random() * 200;
@@ -61,7 +65,7 @@ function generateInitialHistoricalData(): HistoricalData[] {
       totalCurrent: 10 + Math.random() * 4,
     });
   }
-  
+
   return data;
 }
 
@@ -81,10 +85,10 @@ function generateSensorData(prevData?: SensorData): SensorData {
       totalCurrent: 10 + Math.random() * 4,
     };
   }
-  
+
   // Add small variations for realistic data
   const newTds = Math.max(0, Math.min(1000, prevData.tds + (Math.random() - 0.5) * 20));
-  
+
   return {
     ph: Math.max(0, Math.min(14, prevData.ph + (Math.random() - 0.5) * 0.1)),
     flowRate: Math.max(80, Math.min(130, prevData.flowRate + (Math.random() - 0.5) * 3)),
@@ -103,15 +107,64 @@ export default function App() {
   const [sensorData, setSensorData] = useState<SensorData>(() => generateSensorData());
   const [pumpManualOverride, setPumpManualOverride] = useState(false);
   const [pumpOn, setPumpOn] = useState(true);
-  const [flowHistory, setFlowHistory] = useState<Array<{ time: number; flow: number }>>(() => 
+  const [flowHistory, setFlowHistory] = useState<Array<{ time: number; flow: number }>>(() =>
     Array.from({ length: 60 }, (_, i) => ({ time: i, flow: 100 + Math.random() * 20 }))
   );
   const [historicalData, setHistoricalData] = useState<HistoricalData[]>(generateInitialHistoricalData);
 
-  // Apply dark mode on mount
+  // Stage progression state
+  const [currentStage, setCurrentStage] = useState(1); // 0=off, 1-3=active
+  const [stageElapsed, setStageElapsed] = useState([0, 0, 0]); // seconds per stage
+  const stageStartRef = useRef(Date.now());
+
+  // Reset stages when pump turns off, start when pump turns on
   useEffect(() => {
-    document.documentElement.classList.add('dark');
-  }, []);
+    if (pumpOn) {
+      setCurrentStage(1);
+      setStageElapsed([0, 0, 0]);
+      stageStartRef.current = Date.now();
+    } else {
+      setCurrentStage(0);
+    }
+  }, [pumpOn]);
+
+  // Tick the stage timer every second
+  useEffect(() => {
+    if (!pumpOn || currentStage === 0) return;
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - stageStartRef.current) / 1000);
+      const stageIdx = currentStage - 1;
+      const stageDuration = STAGE_DURATIONS[stageIdx];
+
+      if (elapsed >= stageDuration) {
+        // Stage complete — lock in its duration and advance
+        setStageElapsed(prev => {
+          const next = [...prev];
+          next[stageIdx] = stageDuration;
+          return next;
+        });
+
+        if (currentStage < 3) {
+          setCurrentStage(currentStage + 1);
+          stageStartRef.current = Date.now();
+        } else {
+          // Cycle complete — restart at stage 1
+          setCurrentStage(1);
+          setStageElapsed([0, 0, 0]);
+          stageStartRef.current = Date.now();
+        }
+      } else {
+        setStageElapsed(prev => {
+          const next = [...prev];
+          next[stageIdx] = elapsed;
+          return next;
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [pumpOn, currentStage]);
 
   // Calculate system safety
   const phSafe = sensorData.ph >= 6.5 && sensorData.ph <= 7.5;
@@ -120,7 +173,7 @@ export default function App() {
   const temperatureSafe = sensorData.temperature >= 18 && sensorData.temperature <= 28;
   const voltageSafe = sensorData.voltage >= 210 && sensorData.voltage <= 240;
   const currentSafe = sensorData.current >= 4 && sensorData.current <= 7;
-  
+
   const systemSafe = phSafe && flowRateSafe && tdsSafe && temperatureSafe && voltageSafe && currentSafe;
 
   // Pump control logic
@@ -134,7 +187,7 @@ export default function App() {
   useEffect(() => {
     const interval = setInterval(() => {
       setSensorData(prev => generateSensorData(prev));
-      
+
       setFlowHistory(prev => {
         const newFlow = 100 + Math.random() * 20;
         const updated = [...prev.slice(1), { time: prev[prev.length - 1].time + 1, flow: newFlow }];
@@ -164,7 +217,7 @@ export default function App() {
           totalVoltage: sensorData.totalVoltage,
           totalCurrent: sensorData.totalCurrent,
         };
-        
+
         return [...prev.slice(1), newEntry];
       });
     }, 60000);
@@ -183,24 +236,29 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-screen bg-gray-950 text-white overflow-hidden flex flex-col">
-      {/* Header - Fixed height */}
-      <header className="flex-shrink-0 border-b border-gray-800">
-        <div className="h-12 flex flex-col items-center justify-center">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
+    <div className="h-screen w-screen bg-background text-foreground overflow-hidden flex flex-col lg:overflow-hidden overflow-y-auto">
+      {/* Header */}
+      <header className="flex-shrink-0 border-b border-border">
+        <div className="h-12 flex items-center justify-center px-8 gap-4">
+          <h1 className="text-xl font-bold text-foreground">
             MFC Water Treatment Monitoring System
           </h1>
+          <ThemeToggle />
         </div>
-        
+
         {/* Stage Indicator */}
-        <StageIndicator systemActive={pumpOn} />
+        <StageIndicator
+          currentStage={currentStage}
+          stageElapsed={stageElapsed}
+          stageDurations={STAGE_DURATIONS}
+        />
       </header>
 
-      {/* Main Content Area - Takes remaining space */}
-      <div className="flex-1 p-2 flex flex-col gap-2 min-h-0">
-        {/* Top Section - 4 panels (3 tanks + pump control) - 60% */}
-        <div className="h-[60%] grid grid-cols-1 lg:grid-cols-4 gap-2">
-          <div className="h-full overflow-hidden">
+      {/* Main Content Area */}
+      <div className="flex-1 p-2 md:p-3 min-h-0 lg:overflow-hidden overflow-y-auto">
+        <div className="lg:grid lg:grid-cols-4 lg:grid-rows-[45fr_55fr] lg:gap-2 lg:h-full flex flex-col gap-2">
+          {/* Tank1: 2 cols wide on desktop — has 6 sensors, needs the width */}
+          <div className="min-h-[240px] lg:min-h-0 lg:col-span-2 overflow-hidden">
             <Tank1Panel
               ph={sensorData.ph}
               flowRate={sensorData.flowRate}
@@ -211,21 +269,27 @@ export default function App() {
             />
           </div>
 
-          <div className="h-full overflow-hidden">
+          <div className="min-h-[220px] lg:min-h-0 overflow-hidden">
             <Tank2Panel
               voltage={sensorData.voltage}
               current={sensorData.current}
             />
           </div>
 
-          <div className="h-full overflow-hidden">
+          <div className="min-h-[220px] lg:min-h-0 overflow-hidden">
             <Tank3Panel
               totalVoltage={sensorData.totalVoltage}
               totalCurrent={sensorData.totalCurrent}
             />
           </div>
 
-          <div className="h-full overflow-hidden">
+          {/* Historical: takes first 3 cols in row 2 */}
+          <div className="min-h-[260px] lg:min-h-0 lg:col-span-3 overflow-hidden">
+            <HistoricalPanel historicalData={historicalData} />
+          </div>
+
+          {/* Pump Control: right sidebar in row 2 */}
+          <div className="min-h-[320px] lg:min-h-0 overflow-hidden">
             <PumpControlPanel
               pumpOn={pumpOn}
               manualOverride={pumpManualOverride}
@@ -237,15 +301,10 @@ export default function App() {
             />
           </div>
         </div>
-
-        {/* Bottom Panel - Historical trends - 40% */}
-        <div className="h-[40%] overflow-hidden">
-          <HistoricalPanel historicalData={historicalData} />
-        </div>
       </div>
 
-      {/* Footer - Fixed height */}
-      <footer className="h-8 flex-shrink-0 flex items-center justify-center text-xs text-gray-500 border-t border-gray-800">
+      {/* Footer */}
+      <footer className="h-8 flex-shrink-0 flex items-center justify-center text-xs text-muted-foreground border-t border-border">
         <p>MFC Water Treatment System | Live Data Updated Every Second</p>
       </footer>
     </div>

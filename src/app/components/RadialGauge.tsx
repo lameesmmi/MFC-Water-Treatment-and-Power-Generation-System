@@ -11,9 +11,9 @@ interface RadialGaugeProps {
   isSafe: boolean;
 }
 
-export function RadialGauge({ label, value, min, max, unit, safeZone, isSafe }: RadialGaugeProps) {
+export function RadialGauge({ label, value, min, max, unit, isSafe }: RadialGaugeProps) {
   const percentage = ((value - min) / (max - min)) * 100;
-  
+
   const data = [
     {
       name: label,
@@ -39,20 +39,20 @@ export function RadialGauge({ label, value, min, max, unit, safeZone, isSafe }: 
         >
           <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
           <RadialBar
-            background={{ fill: '#1f2937' }}
+            background={{ fill: 'var(--secondary)' }}
             dataKey="value"
             cornerRadius={8}
           />
         </RadialBarChart>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="text-base font-bold text-white">{value.toFixed(1)}</div>
-          <div className="text-xs text-gray-500">{unit}</div>
+          <div className="text-base font-bold text-foreground">{value.toFixed(1)}</div>
+          <div className="text-xs text-muted-foreground">{unit}</div>
         </div>
       </div>
-      
+
       <div className="text-center mt-1">
         <div className="flex items-center justify-center gap-1">
-          <span className="text-xs text-gray-300">{label}</span>
+          <span className="text-xs text-foreground">{label}</span>
           {isSafe ? (
             <CheckCircle2 className="w-3 h-3 text-green-500" />
           ) : (
