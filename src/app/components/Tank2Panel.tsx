@@ -4,22 +4,24 @@ import { Zap } from 'lucide-react';
 interface Tank2PanelProps {
   voltage: number;
   current: number;
+  connected: Record<string, boolean>;
 }
 
-export function Tank2Panel({ voltage, current }: Tank2PanelProps) {
+export function Tank2Panel({ voltage, current, connected }: Tank2PanelProps) {
   // Determine status for each sensor
-  const voltageStatus = voltage >= 210 && voltage <= 240
+  const voltageStatus = !connected.voltage ? 'offline' : voltage >= 210 && voltage <= 240
     ? 'safe'
     : voltage > 240
     ? 'high'
     : 'low';
-  const currentStatus = current >= 4 && current <= 7
+  const currentStatus = !connected.current ? 'offline' : current >= 4 && current <= 7
     ? 'safe'
     : current > 7
     ? 'high'
     : 'low';
 
   const power = voltage * current;
+  const powerOffline = !connected.voltage || !connected.current;
 
   return (
     <div className="bg-card rounded-lg p-2 border border-border h-full flex flex-col">
@@ -47,11 +49,19 @@ export function Tank2Panel({ voltage, current }: Tank2PanelProps) {
           />
         </div>
 
-        {/* Power Display - flat bg, no gradient */}
-        <div className="flex-1 min-h-0 bg-blue-500/10 border-2 border-blue-600 dark:border-blue-700 rounded-lg p-2 flex flex-col items-center justify-center overflow-hidden">
-          <Zap className="w-6 h-6 text-blue-500 dark:text-blue-400 mb-1" />
-          <div className="text-xs text-blue-600 dark:text-blue-300">Current Power Generation</div>
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{power.toFixed(0)}</div>
+        {/* Power Display */}
+        <div className={`flex-1 min-h-0 border-2 rounded-lg p-2 flex flex-col items-center justify-center overflow-hidden ${
+          powerOffline
+            ? 'bg-muted border-border opacity-60'
+            : 'bg-blue-500/10 border-blue-600 dark:border-blue-700'
+        }`}>
+          <Zap className={`w-6 h-6 mb-1 ${powerOffline ? 'text-muted-foreground' : 'text-blue-500 dark:text-blue-400'}`} />
+          <div className={`text-xs ${powerOffline ? 'text-muted-foreground' : 'text-blue-600 dark:text-blue-300'}`}>
+            Current Power Generation
+          </div>
+          <div className={`text-2xl font-bold ${powerOffline ? 'text-muted-foreground' : 'text-blue-600 dark:text-blue-400'}`}>
+            {powerOffline ? '--' : power.toFixed(0)}
+          </div>
           <div className="text-xs text-muted-foreground">Watts</div>
         </div>
       </div>
