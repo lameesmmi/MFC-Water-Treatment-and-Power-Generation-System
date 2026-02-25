@@ -3,11 +3,12 @@ const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 // ─── Endpoint map ─────────────────────────────────────────────────────────────
 // All backend paths live here. Update once, works everywhere.
 const ENDPOINTS = {
-  health:   `${BASE_URL}/api/health`,
-  readings: `${BASE_URL}/api/readings`,
-  alerts:   `${BASE_URL}/api/alerts`,
-  alertAck: (id: string) => `${BASE_URL}/api/alerts/${id}/acknowledge`,
+  health:       `${BASE_URL}/api/health`,
+  readings:     `${BASE_URL}/api/readings`,
+  alerts:       `${BASE_URL}/api/alerts`,
+  alertAck:     (id: string) => `${BASE_URL}/api/alerts/${id}/acknowledge`,
   alertResolve: (id: string) => `${BASE_URL}/api/alerts/${id}/resolve`,
+  analytics:    (range: string) => `${BASE_URL}/api/analytics?range=${range}`,
 } as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -72,5 +73,37 @@ export async function acknowledgeAlert(id: string): Promise<Alert> {
 export async function resolveAlert(id: string): Promise<Alert> {
   const res = await fetch(ENDPOINTS.alertResolve(id), { method: 'PATCH' });
   if (!res.ok) throw new Error(`PATCH /api/alerts/${id}/resolve failed: ${res.status}`);
+  return res.json();
+}
+
+// ─── Analytics types ──────────────────────────────────────────────────────────
+
+export type AnalyticsRange = '24h' | '7d' | '30d';
+
+export interface AnalyticsData {
+  range: AnalyticsRange;
+  summary: {
+    totalReadings: number;
+    eorPassRate:   number | null;
+    totalEnergyWh: number;
+    avgPowerW:     number;
+  };
+  powerOverTime:     { time: string; avgPower: number; energyWh: number }[];
+  eorOverTime:       { time: string; pass: number; fail: number }[];
+  sensorTrends:      { time: string; ph: number; tds: number; temperature: number }[];
+  failuresBySensor:  { sensor: string; count: number }[];
+  alertStats: {
+    bySensor:        { sensor: string; count: number }[];
+    bySeverity:      { severity: string; count: number }[];
+    avgResolutionMs: number | null;
+    resolvedCount:   number;
+  };
+}
+
+// ─── Analytics request ────────────────────────────────────────────────────────
+
+export async function fetchAnalytics(range: AnalyticsRange = '24h'): Promise<AnalyticsData> {
+  const res = await fetch(ENDPOINTS.analytics(range));
+  if (!res.ok) throw new Error(`GET /api/analytics failed: ${res.status}`);
   return res.json();
 }
