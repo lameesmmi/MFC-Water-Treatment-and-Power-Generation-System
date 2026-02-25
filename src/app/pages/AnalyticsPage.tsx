@@ -3,14 +3,21 @@ import {
   BarChart, Bar, AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { Zap, Activity, CheckCircle2, AlertTriangle, Loader2, BarChart2 } from 'lucide-react';
+import { Zap, Activity, CheckCircle2, AlertTriangle, Loader2, BarChart2, Printer, CalendarDays } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { DayPicker } from 'react-day-picker';
+import type { DateRange } from 'react-day-picker';
+import 'react-day-picker/dist/style.css';
+import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import { fetchAnalytics } from '@/app/services/api';
 import type { AnalyticsData, AnalyticsRange } from '@/app/services/api';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Types & constants ────────────────────────────────────────────────────────
 
-const RANGES: { key: AnalyticsRange; label: string }[] = [
+type RangeKey = AnalyticsRange | 'custom';
+
+const PRESET_RANGES: { key: AnalyticsRange; label: string }[] = [
   { key: '24h', label: '24 Hours' },
   { key: '7d',  label: '7 Days'  },
   { key: '30d', label: '30 Days' },
@@ -39,25 +46,29 @@ const TOOLTIP_STYLE = {
   labelStyle: { color: 'var(--muted-foreground)' },
 };
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatMs(ms: number | null): string {
   if (ms === null) return '—';
-  if (ms < 60_000)     return `${Math.round(ms / 1_000)}s`;
-  if (ms < 3_600_000)  return `${Math.round(ms / 60_000)}m`;
+  if (ms < 60_000)    return `${Math.round(ms / 1_000)}s`;
+  if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
   return `${(ms / 3_600_000).toFixed(1)}h`;
+}
+
+function rangeLabel(range: RangeKey, dr: DateRange | undefined): string {
+  if (range === '24h') return 'Last 24 Hours';
+  if (range === '7d')  return 'Last 7 Days';
+  if (range === '30d') return 'Last 30 Days';
+  if (dr?.from && dr?.to)
+    return `${format(dr.from, 'MMM d, yyyy')} – ${format(dr.to, 'MMM d, yyyy')}`;
+  return 'Custom Range';
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function KpiCard({ label, value, unit, icon: Icon, color, bg, border }: {
-  label: string;
-  value: string;
-  unit:  string;
-  icon:  LucideIcon;
-  color: string;
-  bg:    string;
-  border: string;
+  label: string; value: string; unit: string;
+  icon: LucideIcon; color: string; bg: string; border: string;
 }) {
   return (
     <div className={`${bg} rounded-lg border ${border} p-3 flex flex-col gap-1`}>
@@ -74,9 +85,7 @@ function KpiCard({ label, value, unit, icon: Icon, color, bg, border }: {
 }
 
 function ChartCard({ title, height = 'h-64', children }: {
-  title:    string;
-  height?:  string;
-  children: ReactElement;
+  title: string; height?: string; children: ReactElement;
 }) {
   return (
     <div className={`bg-card rounded-lg border border-border p-3 flex flex-col ${height}`}>
@@ -93,34 +102,55 @@ function ChartCard({ title, height = 'h-64', children }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
-  const [range,   setRange]   = useState<AnalyticsRange>('24h');
-  const [data,    setData]    = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
+  const [range,       setRange]       = useState<RangeKey>('24h');
+  const [dateRange,   setDateRange]   = useState<DateRange | undefined>();
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [data,        setData]        = useState<AnalyticsData | null>(null);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState<string | null>(null);
 
+  // Fetch when range or custom dates change
   useEffect(() => {
+    if (range === 'custom' && !(dateRange?.from && dateRange?.to)) return;
+
     setLoading(true);
     setError(null);
-    fetchAnalytics(range)
-      .then(d  => setData(d))
-      .catch(e  => setError(e.message))
+    fetchAnalytics(
+      range === 'custom' ? '24h' : range,  // ignored by backend when from/to sent
+      range === 'custom' ? dateRange!.from : undefined,
+      range === 'custom' ? dateRange!.to   : undefined,
+    )
+      .then(setData)
+      .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, [range]);
+  }, [range, dateRange?.from, dateRange?.to]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDateSelect = (selected: DateRange | undefined) => {
+    setDateRange(selected);
+    if (selected?.from && selected?.to) setPopoverOpen(false); // auto-close when range complete
+  };
+
+  const handlePresetClick = (key: AnalyticsRange) => {
+    setRange(key);
+    setDateRange(undefined);
+  };
+
+  const currentRangeLabel = rangeLabel(range, dateRange);
 
   return (
     <div className="h-full flex flex-col bg-background text-foreground overflow-hidden">
 
-      {/* Header */}
-      <header className="flex-shrink-0 h-12 flex items-center px-6 border-b border-border gap-3">
+      {/* ── Header (hidden when printing) ───────────────────────────────────── */}
+      <header className="print:hidden flex-shrink-0 h-12 flex items-center px-6 border-b border-border gap-3">
         <BarChart2 className="w-5 h-5 text-muted-foreground" />
         <h1 className="text-xl font-bold">Analytics &amp; Reports</h1>
 
-        {/* Range selector */}
-        <div className="ml-auto flex items-center gap-1">
-          {RANGES.map(r => (
+        <div className="ml-auto flex items-center gap-2">
+          {/* Preset range buttons */}
+          {PRESET_RANGES.map(r => (
             <button
               key={r.key}
-              onClick={() => setRange(r.key)}
+              onClick={() => handlePresetClick(r.key)}
               className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                 range === r.key
                   ? 'bg-primary text-primary-foreground'
@@ -130,17 +160,74 @@ export default function AnalyticsPage() {
               {r.label}
             </button>
           ))}
+
+          {/* Custom date range picker */}
+          <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  range === 'custom'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-secondary'
+                }`}
+                onClick={() => setRange('custom')}
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                {range === 'custom' && dateRange?.from && dateRange?.to
+                  ? `${format(dateRange.from, 'MMM d')} – ${format(dateRange.to, 'MMM d, yyyy')}`
+                  : 'Custom'
+                }
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <DayPicker
+                mode="range"
+                selected={dateRange}
+                onSelect={handleDateSelect}
+                numberOfMonths={2}
+                disabled={{ after: new Date() }}
+                className="p-3"
+              />
+            </PopoverContent>
+          </Popover>
+
+          {/* Print button */}
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium bg-muted text-muted-foreground hover:bg-secondary transition-colors"
+            title="Export as PDF"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            Print PDF
+          </button>
         </div>
       </header>
 
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 min-h-0">
+      {/* ── Print-only header (visible only when printing) ───────────────────── */}
+      <div className="hidden print:block px-6 py-4 border-b border-gray-300">
+        <h1 className="text-2xl font-bold text-gray-900">MFC Water Treatment — Analytics Report</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          Period: <strong>{currentRangeLabel}</strong>
+          &nbsp;·&nbsp;Generated: {format(new Date(), 'PPpp')}
+        </p>
+      </div>
+
+      {/* ── Body ─────────────────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto print:overflow-visible p-4 flex flex-col gap-4 min-h-0">
 
         {/* Loading */}
         {loading && (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin" />
             <span className="text-sm">Loading analytics…</span>
+          </div>
+        )}
+
+        {/* Waiting for custom date selection */}
+        {!loading && range === 'custom' && !(dateRange?.from && dateRange?.to) && (
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+            <CalendarDays className="w-10 h-10 opacity-30" />
+            <p className="text-sm">Select a start and end date to load the report</p>
           </div>
         )}
 
@@ -194,7 +281,7 @@ export default function AnalyticsPage() {
               />
             </div>
 
-            {/* Main charts — 2-col grid */}
+            {/* Main charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
               {/* Power over time */}
@@ -210,15 +297,7 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="time" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
                   <YAxis tick={{ fontSize: 8 }} width={42} />
                   <Tooltip {...TOOLTIP_STYLE} />
-                  <Area
-                    type="monotone"
-                    dataKey="avgPower"
-                    stroke="#a855f7"
-                    strokeWidth={2}
-                    fill="url(#powerGrad)"
-                    dot={false}
-                    name="Avg Power (W)"
-                  />
+                  <Area type="monotone" dataKey="avgPower" stroke="#a855f7" strokeWidth={2} fill="url(#powerGrad)" dot={false} name="Avg Power (W)" />
                 </AreaChart>
               </ChartCard>
 
@@ -261,15 +340,7 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="time" tick={{ fontSize: 8 }} interval="preserveStartEnd" />
                   <YAxis tick={{ fontSize: 8 }} width={45} />
                   <Tooltip {...TOOLTIP_STYLE} />
-                  <Area
-                    type="monotone"
-                    dataKey="tds"
-                    stroke="#06b6d4"
-                    strokeWidth={2}
-                    fill="url(#tdsGrad)"
-                    dot={false}
-                    name="TDS (mg/L)"
-                  />
+                  <Area type="monotone" dataKey="tds" stroke="#06b6d4" strokeWidth={2} fill="url(#tdsGrad)" dot={false} name="TDS (mg/L)" />
                 </AreaChart>
               </ChartCard>
             </div>
@@ -279,7 +350,7 @@ export default function AnalyticsPage() {
 
               {/* EOR failures by sensor */}
               <div className="bg-card rounded-lg border border-border p-3 flex flex-col gap-2">
-                <h2 className="text-sm font-semibold flex-shrink-0 flex items-center gap-2">
+                <h2 className="text-sm font-semibold flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-orange-500" />
                   EOR Failures by Sensor
                 </h2>
@@ -345,7 +416,6 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
 
-                {/* Alerts by sensor (mini list) */}
                 {data.alertStats.bySensor.length > 0 && (
                   <>
                     <hr className="border-border" />

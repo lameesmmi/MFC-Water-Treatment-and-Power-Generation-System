@@ -81,7 +81,7 @@ export async function resolveAlert(id: string): Promise<Alert> {
 export type AnalyticsRange = '24h' | '7d' | '30d';
 
 export interface AnalyticsData {
-  range: AnalyticsRange;
+  range: AnalyticsRange | 'custom';
   summary: {
     totalReadings: number;
     eorPassRate:   number | null;
@@ -102,8 +102,16 @@ export interface AnalyticsData {
 
 // ─── Analytics request ────────────────────────────────────────────────────────
 
-export async function fetchAnalytics(range: AnalyticsRange = '24h'): Promise<AnalyticsData> {
-  const res = await fetch(ENDPOINTS.analytics(range));
+export async function fetchAnalytics(
+  range: AnalyticsRange = '24h',
+  from?: Date,
+  to?: Date,
+): Promise<AnalyticsData> {
+  const base = `${BASE_URL}/api/analytics`;
+  const url  = (from && to)
+    ? `${base}?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`
+    : ENDPOINTS.analytics(range);
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`GET /api/analytics failed: ${res.status}`);
   return res.json();
 }
