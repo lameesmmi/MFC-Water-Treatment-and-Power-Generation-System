@@ -19,9 +19,9 @@ function generateAnalyticsData(): HourlyData[] {
   for (let i = 23; i >= 0; i--) {
     const ts = new Date(now - i * 60 * 60 * 1000);
     const hour = ts.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    const voltage = 220 + (Math.random() - 0.5) * 30;
-    const current = 5 + (Math.random() - 0.5) * 2;
-    const power = (voltage * current) / 1000; // kW
+    const voltage = 1.2 + (Math.random() - 0.5) * 0.4;   // MFC DC: ~1.0–1.4 V
+    const current = 0.3 + (Math.random() - 0.5) * 0.1;   // MFC DC: ~0.25–0.35 A
+    const power = voltage * current;                        // W (not kW — MFC scale)
     data.push({
       hour,
       power: +power.toFixed(2),
@@ -44,8 +44,8 @@ export default function AnalyticsPage() {
   const kpis = [
     {
       label: 'Energy Generated (24h)',
-      value: (totalEnergy / 1000).toFixed(2),
-      unit: 'kWh',
+      value: totalEnergy.toFixed(1),
+      unit: 'Wh',
       icon: Zap,
       color: 'text-yellow-500 dark:text-yellow-400',
       bg: 'bg-yellow-500/10',
@@ -71,8 +71,8 @@ export default function AnalyticsPage() {
     },
     {
       label: 'Peak Power Output',
-      value: peakPower.toFixed(2),
-      unit: 'kW',
+      value: peakPower.toFixed(3),
+      unit: 'W',
       icon: Activity,
       color: 'text-purple-500 dark:text-purple-400',
       bg: 'bg-purple-500/10',
@@ -181,7 +181,7 @@ export default function AnalyticsPage() {
 
           {/* Power Output Area Chart */}
           <div className="bg-card rounded-lg border border-border p-3 flex flex-col h-64">
-            <h2 className="text-sm font-semibold mb-2 flex-shrink-0">Power Output (kW)</h2>
+            <h2 className="text-sm font-semibold mb-2 flex-shrink-0">Power Output (W)</h2>
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data}>
@@ -202,7 +202,7 @@ export default function AnalyticsPage() {
                     strokeWidth={2}
                     fill="url(#powerGradient)"
                     dot={false}
-                    name="Power (kW)"
+                    name="Power (W)"
                   />
                 </AreaChart>
               </ResponsiveContainer>

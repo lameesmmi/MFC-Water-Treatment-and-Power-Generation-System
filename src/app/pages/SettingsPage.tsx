@@ -10,21 +10,21 @@ interface ThresholdMeta {
 }
 
 const SENSOR_META: Record<string, ThresholdMeta> = {
-  ph:          { label: 'pH Level',     unit: 'pH',    absMin: 0,   absMax: 14,  step: 0.1 },
-  flowRate:    { label: 'Flow Rate',    unit: 'L/min', absMin: 0,   absMax: 200, step: 1   },
-  tds:         { label: 'TDS',          unit: 'ppm',   absMin: 0,   absMax: 2000,step: 10  },
-  temperature: { label: 'Temperature', unit: '°C',    absMin: 0,   absMax: 50,  step: 0.5 },
-  voltage:     { label: 'Voltage',      unit: 'V',     absMin: 100, absMax: 300, step: 1   },
-  current:     { label: 'Current',      unit: 'A',     absMin: 0,   absMax: 20,  step: 0.1 },
+  ph:          { label: 'pH Level',    unit: 'pH',    absMin: 0,  absMax: 14, step: 0.1 },
+  flowRate:    { label: 'Flow Rate',   unit: 'L/min', absMin: 0,  absMax: 20, step: 0.1 },
+  tds:         { label: 'TDS',         unit: 'ppm',   absMin: 0,  absMax: 10000, step: 10 },
+  temperature: { label: 'Temperature', unit: '°C',    absMin: 0,  absMax: 60, step: 0.5 },
+  voltage:     { label: 'Voltage',     unit: 'V',     absMin: 0,  absMax: 50, step: 0.1 },
+  current:     { label: 'Current',     unit: 'A',     absMin: 0,  absMax: 10, step: 0.1 },
 };
 
 const DEFAULT_THRESHOLDS = {
-  ph:          { min: 6.5,  max: 7.5  },
-  flowRate:    { min: 90,   max: 120  },
-  tds:         { min: 0,    max: 500  },
-  temperature: { min: 18,   max: 28   },
-  voltage:     { min: 210,  max: 240  },
-  current:     { min: 4,    max: 7    },
+  ph:          { min: 6.5, max: 8.5 },
+  flowRate:    { min: 0.5, max: 5   },
+  tds:         { min: 0,   max: 5000 },
+  temperature: { min: 10,  max: 40  },
+  voltage:     { min: 0,   max: 50  },
+  current:     { min: 0,   max: 5   },
 };
 
 type ThresholdKey = keyof typeof DEFAULT_THRESHOLDS;
@@ -199,7 +199,7 @@ export default function SettingsPage() {
             {[
               { label: 'System Name',       value: 'MFC Water Treatment System' },
               { label: 'Frontend Version',  value: '1.0.0' },
-              { label: 'Sensors Monitored', value: '10' },
+              { label: 'Sensors Monitored', value: '8' },
               { label: 'Data Update Cycle', value: `${updateInterval}s` },
               { label: 'Alert Notifications', value: alertsEnabled ? 'Enabled' : 'Disabled' },
             ].map(({ label, value }) => (
