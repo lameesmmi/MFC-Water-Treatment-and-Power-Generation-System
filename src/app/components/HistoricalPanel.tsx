@@ -13,15 +13,13 @@ interface HistoricalData {
   temperature: number;
   voltage: number;
   current: number;
-  totalVoltage: number;
-  totalCurrent: number;
 }
 
 interface HistoricalPanelProps {
   historicalData: HistoricalData[];
 }
 
-type SensorKey = 'ph' | 'flowRate' | 'tds' | 'salinity' | 'conductivity' | 'temperature' | 'voltage' | 'current' | 'totalVoltage' | 'totalCurrent';
+type SensorKey = 'ph' | 'flowRate' | 'tds' | 'salinity' | 'conductivity' | 'temperature' | 'voltage' | 'current';
 
 interface SensorConfig {
   key: SensorKey;
@@ -51,8 +49,6 @@ export function HistoricalPanel({ historicalData }: HistoricalPanelProps) {
     temperature: true,
     voltage: true,
     current: false,
-    totalVoltage: false,
-    totalCurrent: false,
   });
 
   const toggleSensor = (key: SensorKey) => {
