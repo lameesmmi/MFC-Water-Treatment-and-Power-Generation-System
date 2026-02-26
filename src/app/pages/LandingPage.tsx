@@ -213,6 +213,7 @@ export default function LandingPage() {
             <a href="#problem"    className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Problem</a>
             <a href="#solution"   className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Solution</a>
             <a href="#objectives" className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Results</a>
+            <Link to="/team"      className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Team</Link>
             <Link
               to={appLink}
               className="flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
