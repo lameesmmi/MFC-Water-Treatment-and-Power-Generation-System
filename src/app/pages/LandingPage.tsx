@@ -3,8 +3,40 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
 import {
   Zap, Droplets, Activity, Cpu, ArrowRight,
-  FlaskConical, Wifi, CheckCircle,
+  FlaskConical, Wifi, CheckCircle, Linkedin,
 } from 'lucide-react';
+
+// ─── Team data ────────────────────────────────────────────────────────────────
+
+type Dept = 'CHE' | 'PETE' | 'SWE' | 'EE';
+
+interface Member {
+  name:    string;
+  dept:    Dept;
+  leader?: boolean;
+  color:   string;
+  linkedin: string;
+}
+
+const MEMBERS: Member[] = [
+  { name: 'Sara Almugrin',     dept: 'CHE',  leader: true, color: '#e74c3c', linkedin: 'https://www.linkedin.com/in/sara-almugrin-198819279/' },
+  { name: 'Ruba Alshahrani',   dept: 'PETE',              color: '#e67e22', linkedin: 'https://www.linkedin.com/in/' },
+  { name: 'Lamees Alikhwan',   dept: 'SWE',               color: '#3498db', linkedin: 'https://www.linkedin.com/in/lamees-al-ikhwan-48a492231' },
+  { name: 'Rema Almoamer',     dept: 'EE',                color: '#1abc9c', linkedin: 'https://www.linkedin.com/in/reema-almoammar-610757263/' },
+  { name: 'Sarah Al Jumaiaah', dept: 'CHE',               color: '#9b59b6', linkedin: 'https://www.linkedin.com/in/' },
+  { name: 'Wajan Alkharobi',   dept: 'PETE',              color: '#2ecc71', linkedin: 'https://www.linkedin.com/in/' },
+];
+
+const DEPT_STYLES: Record<Dept, { label: string; badge: string }> = {
+  CHE:  { label: 'Chemical Engineering',   badge: 'bg-orange-500/15 text-orange-400 border-orange-500/20'   },
+  PETE: { label: 'Petroleum Engineering',  badge: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20'  },
+  SWE:  { label: 'Software Engineering',   badge: 'bg-blue-500/15 text-blue-400 border-blue-500/20'        },
+  EE:   { label: 'Electrical Engineering', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
+};
+
+function memberInitials(name: string) {
+  return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+}
 
 // ─── MFC Schematic Diagram ────────────────────────────────────────────────────
 
@@ -188,6 +220,41 @@ function ObjectiveCard({
   );
 }
 
+function MemberCard({ member }: { member: Member }) {
+  const dept = DEPT_STYLES[member.dept];
+  return (
+    <div className="relative flex flex-col items-center text-center rounded-2xl border border-border bg-card p-6 gap-4 hover:shadow-lg transition-all duration-200">
+      {member.leader && (
+        <span className="absolute top-4 right-4 rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">
+          Project Leader
+        </span>
+      )}
+      <div
+        className="flex items-center justify-center rounded-full text-white font-bold text-xl select-none ring-4 ring-border"
+        style={{ width: 72, height: 72, backgroundColor: member.color }}
+      >
+        {memberInitials(member.name)}
+      </div>
+      <div>
+        <h3 className="text-sm font-semibold text-foreground leading-snug">{member.name}</h3>
+        <span className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${dept.badge}`}>
+          {member.dept} — {dept.label}
+        </span>
+      </div>
+      <a
+        href={member.linkedin}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-auto flex items-center gap-1.5 rounded-lg border border-border px-4 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+        aria-label={`${member.name} on LinkedIn`}
+      >
+        <Linkedin className="h-3.5 w-3.5" />
+        LinkedIn
+      </a>
+    </div>
+  );
+}
+
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
@@ -213,7 +280,7 @@ export default function LandingPage() {
             <a href="#problem"    className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Problem</a>
             <a href="#solution"   className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Solution</a>
             <a href="#objectives" className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Results</a>
-            <Link to="/team"      className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Team</Link>
+            <a href="#team"        className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Team</a>
             <Link
               to={appLink}
               className="flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
@@ -481,6 +548,35 @@ export default function LandingPage() {
               title="Live Digital Twinning"
               description="Providing continuous real-time digital monitoring and simulation of the physical hardware state."
             />
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── Team ────────────────────────────────────────────────────────── */}
+      <section id="team" className="py-20 md:py-28">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+
+          <div className="max-w-3xl mx-auto text-center mb-14">
+            <SectionBadge>The People</SectionBadge>
+            <h2 className="text-3xl md:text-4xl font-bold mt-4">Meet the Team</h2>
+            <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
+              Six engineers across Chemical, Petroleum, Electrical, and Software Engineering
+              disciplines — united to build a smarter, greener future for water treatment.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-5xl mx-auto">
+            {MEMBERS.map(m => (
+              <MemberCard key={m.name} member={m} />
+            ))}
+          </div>
+
+          {/* Advisor */}
+          <div className="mt-12 flex flex-col items-center gap-1 text-center">
+            <p className="text-xs text-muted-foreground">Project Coach</p>
+            <p className="text-sm font-medium text-foreground">Dr. Khadijah AlSafwan</p>
+            <p className="text-xs text-muted-foreground">King Fahd University of Petroleum &amp; Minerals</p>
           </div>
 
         </div>
