@@ -78,6 +78,41 @@
   --sidebar-ring: #3b82f6;
 }
 
+/* ─── Print styles ──────────────────────────────────────────────────────────── */
+@media print {
+  /* Force light background for all elements */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  /* Remove overflow clipping so all content prints */
+  .h-screen, .h-full, .overflow-hidden, .overflow-y-auto {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Avoid page breaks inside cards and charts */
+  .bg-card, .recharts-wrapper {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Recharts: ensure SVG text is visible */
+  .recharts-text, .recharts-cartesian-axis-tick-value {
+    fill: #374151 !important;
+  }
+
+  .recharts-cartesian-grid line {
+    stroke: #d1d5db !important;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
