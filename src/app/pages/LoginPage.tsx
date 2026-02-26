@@ -18,7 +18,7 @@ export default function LoginPage() {
     checkSetup().then(({ needsSetup: ns }) => setNeedsSetup(ns));
   }, []);
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/dashboard" replace />;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,7 +29,7 @@ export default function LoginPage() {
         ? await setupAdmin({ name, email, password })
         : await apiLogin({ email, password });
       login(result.token, result.user);
-      navigate('/', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
