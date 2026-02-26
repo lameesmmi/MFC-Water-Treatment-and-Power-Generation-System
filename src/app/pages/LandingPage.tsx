@@ -1,20 +1,39 @@
 import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import {
   Zap, Droplets, Activity, Cpu, ArrowRight,
   FlaskConical, Wifi, CheckCircle, Linkedin,
 } from 'lucide-react';
 
+// ─── Animation helpers ────────────────────────────────────────────────────────
+
+/** Reusable scroll-triggered fade-up props */
+const fadeUp = (delay = 0) => ({
+  initial:     { opacity: 0, y: 28 },
+  whileInView: { opacity: 1, y: 0  },
+  viewport:    { once: true, margin: '-60px' },
+  transition:  { duration: 0.55, delay, ease: [0.22, 0.61, 0.36, 1] as const },
+});
+
+/** Reusable scroll-triggered fade-in (no vertical shift) */
+const fadeIn = (delay = 0) => ({
+  initial:     { opacity: 0 },
+  whileInView: { opacity: 1 },
+  viewport:    { once: true, margin: '-60px' },
+  transition:  { duration: 0.5, delay },
+});
+
 // ─── Team data ────────────────────────────────────────────────────────────────
 
 type Dept = 'CHE' | 'PETE' | 'SWE' | 'EE';
 
 interface Member {
-  name:    string;
-  dept:    Dept;
-  leader?: boolean;
-  color:   string;
+  name:     string;
+  dept:     Dept;
+  leader?:  boolean;
+  color:    string;
   linkedin: string;
 }
 
@@ -28,9 +47,9 @@ const MEMBERS: Member[] = [
 ];
 
 const DEPT_STYLES: Record<Dept, { label: string; badge: string }> = {
-  CHE:  { label: 'Chemical Engineering',   badge: 'bg-orange-500/15 text-orange-400 border-orange-500/20'   },
-  PETE: { label: 'Petroleum Engineering',  badge: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20'  },
-  SWE:  { label: 'Software Engineering',   badge: 'bg-blue-500/15 text-blue-400 border-blue-500/20'        },
+  CHE:  { label: 'Chemical Engineering',   badge: 'bg-orange-500/15 text-orange-400 border-orange-500/20'    },
+  PETE: { label: 'Petroleum Engineering',  badge: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20'   },
+  SWE:  { label: 'Software Engineering',   badge: 'bg-blue-500/15 text-blue-400 border-blue-500/20'         },
   EE:   { label: 'Electrical Engineering', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
 };
 
@@ -43,7 +62,6 @@ function memberInitials(name: string) {
 function MFCDiagram() {
   return (
     <div className="relative p-2">
-      {/* Ambient glow behind the diagram */}
       <div
         className="absolute inset-0 rounded-2xl pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.14) 0%, transparent 70%)' }}
@@ -62,40 +80,24 @@ function MFCDiagram() {
             <path d="M0 1 L6 3.5 L0 6z" fill="#fbbf24" />
           </marker>
         </defs>
-
-        {/* ── Anode chamber (left, blue) ── */}
         <rect x="5" y="55" width="181" height="162" rx="6"
           fill="rgba(59,130,246,0.06)" stroke="#3b82f6" strokeWidth="1.5" strokeOpacity="0.5" />
-
-        {/* ── PEM Membrane ── */}
         <rect x="188" y="55" width="24" height="162" rx="2"
           fill="rgba(251,191,36,0.08)" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4,3.5" />
-
-        {/* ── Cathode chamber (right, green) ── */}
         <rect x="214" y="55" width="181" height="162" rx="6"
           fill="rgba(34,197,94,0.06)" stroke="#22c55e" strokeWidth="1.5" strokeOpacity="0.5" />
-
-        {/* ── External circuit wires ── */}
         <path d="M95 55 L95 22 L177 22" fill="none" stroke="#475569" strokeWidth="1.5" />
         <path d="M223 22 L305 22 L305 55" fill="none" stroke="#475569" strokeWidth="1.5" />
-
-        {/* ── Load / Resistor box ── */}
         <rect x="177" y="12" width="46" height="20" rx="3"
           fill="#0f172a" stroke="#475569" strokeWidth="1" />
         <text x="200" y="25.5" textAnchor="middle" fontSize="8.5" fill="#94a3b8"
           fontFamily="ui-monospace,monospace" letterSpacing="0.5">LOAD</text>
-
-        {/* ── Electron flow arrows ── */}
         <line x1="115" y1="22" x2="168" y2="22" stroke="#818cf8" strokeWidth="1.5" markerEnd="url(#arrI)" />
         <line x1="232" y1="22" x2="285" y2="22" stroke="#818cf8" strokeWidth="1.5" markerEnd="url(#arrI)" />
         <text x="140" y="16" textAnchor="middle" fontSize="9" fill="#818cf8">e⁻</text>
         <text x="257" y="16" textAnchor="middle" fontSize="9" fill="#818cf8">e⁻</text>
-
-        {/* ── H+ proton flow through membrane ── */}
         <line x1="193" y1="145" x2="208" y2="145" stroke="#fbbf24" strokeWidth="1.5" markerEnd="url(#arrA)" />
         <text x="200" y="139" textAnchor="middle" fontSize="8" fill="#fbbf24">H⁺</text>
-
-        {/* ── Bacteria in anode ── */}
         {([
           [42, 95], [85, 115], [55, 155], [122, 98], [42, 175], [112, 170], [155, 130],
         ] as [number, number][]).map(([cx, cy], i) => (
@@ -105,27 +107,19 @@ function MFCDiagram() {
             <circle cx={cx} cy={cy} r="2" fill="#93c5fd" opacity="0.8" />
           </g>
         ))}
-
-        {/* ── O₂ / H₂O bubbles in cathode ── */}
         {([
           [252, 95], [297, 112], [338, 92], [263, 158], [322, 158], [352, 128],
         ] as [number, number][]).map(([cx, cy], i) => (
           <circle key={i} cx={cx} cy={cy} r="7"
             fill="rgba(34,197,94,0.13)" stroke="#4ade80" strokeWidth="0.7" opacity="0.75" />
         ))}
-
-        {/* ── Chamber labels ── */}
-        <text x="95" y="71" textAnchor="middle" fontSize="9" fill="#60a5fa" fontWeight="700" letterSpacing="0.8">ANODE (−)</text>
-        <text x="305" y="71" textAnchor="middle" fontSize="9" fill="#4ade80" fontWeight="700" letterSpacing="0.8">CATHODE (+)</text>
-        <text x="200" y="50" textAnchor="middle" fontSize="8" fill="#fbbf24" fontWeight="600">PEM</text>
-
-        {/* ── Inner content labels ── */}
-        <text x="95" y="197" textAnchor="middle" fontSize="7.5" fill="#93c5fd" opacity="0.65">Organic Matter + Bacteria</text>
+        <text x="95"  y="71"  textAnchor="middle" fontSize="9"   fill="#60a5fa" fontWeight="700" letterSpacing="0.8">ANODE (−)</text>
+        <text x="305" y="71"  textAnchor="middle" fontSize="9"   fill="#4ade80" fontWeight="700" letterSpacing="0.8">CATHODE (+)</text>
+        <text x="200" y="50"  textAnchor="middle" fontSize="8"   fill="#fbbf24" fontWeight="600">PEM</text>
+        <text x="95"  y="197" textAnchor="middle" fontSize="7.5" fill="#93c5fd" opacity="0.65">Organic Matter + Bacteria</text>
         <text x="305" y="128" textAnchor="middle" fontSize="7.5" fill="#86efac" opacity="0.65">O₂ + H₂O</text>
-
-        {/* ── Bottom labels ── */}
-        <text x="95" y="238" textAnchor="middle" fontSize="8" fill="#64748b">Wastewater IN</text>
-        <text x="305" y="238" textAnchor="middle" fontSize="8" fill="#64748b">Clean Water OUT</text>
+        <text x="95"  y="238" textAnchor="middle" fontSize="8"   fill="#64748b">Wastewater IN</text>
+        <text x="305" y="238" textAnchor="middle" fontSize="8"   fill="#64748b">Clean Water OUT</text>
       </svg>
       <p className="text-center text-xs text-muted-foreground mt-1 opacity-60">
         Fig. 1 — MFC operating principle
@@ -134,7 +128,7 @@ function MFCDiagram() {
   );
 }
 
-// ─── Small helper components ─────────────────────────────────────────────────
+// ─── Helper components ────────────────────────────────────────────────────────
 
 function SectionBadge({ children }: { children: ReactNode }) {
   return (
@@ -161,7 +155,10 @@ function SolutionCard({
   description: string; features: string[]; borderColor: string;
 }) {
   return (
-    <div className={`rounded-xl border ${borderColor} bg-card p-6 flex flex-col gap-5 h-full`}>
+    <motion.div
+      className={`rounded-xl border ${borderColor} bg-card p-6 flex flex-col gap-5 h-full`}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+    >
       <div className={`w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 ${iconBg}`}>
         {icon}
       </div>
@@ -178,7 +175,7 @@ function SolutionCard({
           </li>
         ))}
       </ul>
-    </div>
+    </motion.div>
   );
 }
 
@@ -189,16 +186,17 @@ function MetricCard({
   description: string; color: string; glowColor: string;
 }) {
   return (
-    <div
+    <motion.div
       className="rounded-xl border border-border bg-card p-7 text-center"
       style={{ boxShadow: `inset 0 0 50px ${glowColor}` }}
+      whileHover={{ scale: 1.03, transition: { duration: 0.2 } }}
     >
       <div className={`text-5xl font-black tracking-tight ${color}`}>
         {prefix}{value}
       </div>
       <p className="mt-2.5 text-sm font-semibold text-foreground">{label}</p>
       <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">{description}</p>
-    </div>
+    </motion.div>
   );
 }
 
@@ -208,7 +206,10 @@ function ObjectiveCard({
   icon: ReactNode; iconBg: string; title: string; description: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3">
+    <motion.div
+      className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3"
+      whileHover={{ y: -3, transition: { duration: 0.2 } }}
+    >
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${iconBg}`}>
         {icon}
       </div>
@@ -216,14 +217,21 @@ function ObjectiveCard({
         <h4 className="text-sm font-semibold text-foreground">{title}</h4>
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{description}</p>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-function MemberCard({ member }: { member: Member }) {
+function MemberCard({ member, delay }: { member: Member; delay: number }) {
   const dept = DEPT_STYLES[member.dept];
   return (
-    <div className="relative flex flex-col items-center text-center rounded-2xl border border-border bg-card p-6 gap-4 hover:shadow-lg transition-all duration-200">
+    <motion.div
+      className="relative flex flex-col items-center text-center rounded-2xl border border-border bg-card p-6 gap-4"
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-50px' }}
+      transition={{ duration: 0.5, delay, ease: [0.22, 0.61, 0.36, 1] }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+    >
       {member.leader && (
         <span className="absolute top-4 right-4 rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">
           Project Leader
@@ -251,7 +259,7 @@ function MemberCard({ member }: { member: Member }) {
         <Linkedin className="h-3.5 w-3.5" />
         LinkedIn
       </a>
-    </div>
+    </motion.div>
   );
 }
 
@@ -266,21 +274,24 @@ export default function LandingPage() {
     <div className="bg-background text-foreground min-h-screen overflow-x-hidden">
 
       {/* ── Navbar ─────────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-border/50 bg-background/80 backdrop-blur-md">
+      <motion.nav
+        className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-border/50 bg-background/80 backdrop-blur-md"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+      >
         <div className="max-w-6xl mx-auto h-full px-4 md:px-8 flex items-center justify-between">
-
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
               <Zap className="h-4 w-4 text-primary" />
             </div>
             <span className="font-bold text-sm">MFC System</span>
           </div>
-
           <div className="flex items-center gap-4 md:gap-6">
             <a href="#problem"    className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Problem</a>
             <a href="#solution"   className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Solution</a>
             <a href="#objectives" className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Results</a>
-            <a href="#team"        className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Team</a>
+            <a href="#team"       className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Team</a>
             <Link
               to={appLink}
               className="flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
@@ -290,7 +301,7 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* ── Hero ────────────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex items-center pt-14">
@@ -303,25 +314,41 @@ export default function LandingPage() {
             backgroundSize: '28px 28px',
           }}
         />
-        {/* Glow orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full pointer-events-none blur-3xl opacity-60"
-          style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.18), transparent)' }} />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full pointer-events-none blur-3xl opacity-40"
-          style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.14), transparent)' }} />
+        {/* Animated glow orbs */}
+        <motion.div
+          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full pointer-events-none blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.18), transparent)' }}
+          animate={{ opacity: [0.4, 0.7, 0.4], scale: [1, 1.08, 1] }}
+          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full pointer-events-none blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.14), transparent)' }}
+          animate={{ opacity: [0.3, 0.55, 0.3], scale: [1, 1.1, 1] }}
+          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+        />
 
         <div className="relative max-w-6xl mx-auto px-4 md:px-8 py-20 w-full">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
 
-            {/* Left — text */}
+            {/* Left — staggered text entrance */}
             <div>
-              {/* Project badge */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3.5 py-1 text-xs text-muted-foreground mb-6">
+              <motion.div
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3.5 py-1 text-xs text-muted-foreground mb-6"
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+              >
                 <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                 KFUPM · 252 Senior Project · Team F22
-              </div>
+              </motion.div>
 
-              {/* Headline */}
-              <h1 className="text-4xl md:text-5xl font-bold leading-tight">
+              <motion.h1
+                className="text-4xl md:text-5xl font-bold leading-tight"
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 0.61, 0.36, 1] }}
+              >
                 Powering the Future,
                 <br />
                 <span
@@ -334,16 +361,24 @@ export default function LandingPage() {
                 >
                   One Drop at a Time.
                 </span>
-              </h1>
+              </motion.h1>
 
-              {/* Sub-headline */}
-              <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-md">
+              <motion.p
+                className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-md"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: 0.35 }}
+              >
                 An intelligent bio-electrochemical system that treats wastewater
                 while generating its own sustainable electricity.
-              </p>
+              </motion.p>
 
-              {/* MFC explainer */}
-              <div className="mt-6 rounded-xl border border-border bg-card/50 p-5 max-w-md">
+              <motion.div
+                className="mt-6 rounded-xl border border-border bg-card/50 p-5 max-w-md"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.55, delay: 0.48 }}
+              >
                 <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">
                   What is a Microbial Fuel Cell?
                 </p>
@@ -355,10 +390,14 @@ export default function LandingPage() {
                   simultaneously <span className="text-foreground font-medium">cleaning the water</span> and
                   producing <span className="text-foreground font-medium">green energy</span>.
                 </p>
-              </div>
+              </motion.div>
 
-              {/* CTAs */}
-              <div className="mt-8 flex flex-wrap items-center gap-3">
+              <motion.div
+                className="mt-8 flex flex-wrap items-center gap-3"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              >
                 <Link
                   to={appLink}
                   className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
@@ -372,13 +411,22 @@ export default function LandingPage() {
                 >
                   Learn More ↓
                 </a>
-              </div>
+              </motion.div>
             </div>
 
-            {/* Right — MFC diagram */}
-            <div>
-              <MFCDiagram />
-            </div>
+            {/* Right — diagram floats in then continuously bobs */}
+            <motion.div
+              initial={{ opacity: 0, x: 32 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 0.61, 0.36, 1] }}
+            >
+              <motion.div
+                animate={{ y: [0, -12, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <MFCDiagram />
+              </motion.div>
+            </motion.div>
 
           </div>
         </div>
@@ -388,15 +436,15 @@ export default function LandingPage() {
       <section id="problem" className="py-20 md:py-28 border-y border-border bg-card/20">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
 
-          <div className="max-w-3xl mx-auto text-center mb-14">
+          <motion.div className="max-w-3xl mx-auto text-center mb-14" {...fadeUp()}>
             <SectionBadge>The Challenge</SectionBadge>
             <h2 className="text-3xl md:text-4xl font-bold mt-4">
               The Wasted Potential of Wastewater
             </h2>
-          </div>
+          </motion.div>
 
           <div className="grid md:grid-cols-2 gap-10 max-w-4xl mx-auto">
-            <div className="space-y-5">
+            <motion.div className="space-y-5" {...fadeUp(0.1)}>
               <p className="text-muted-foreground leading-relaxed">
                 Industrial and municipal wastewater is packed with latent energy, yet current
                 treatment technologies treat it purely as a waste product to be disposed of.
@@ -409,21 +457,18 @@ export default function LandingPage() {
               <p className="text-sm text-muted-foreground italic border-l-2 border-border pl-4">
                 "We are throwing away potential energy while paying heavily to do so."
               </p>
-            </div>
+            </motion.div>
 
             <div className="space-y-5">
-              <ProblemPoint
-                icon={<Droplets className="h-5 w-5 text-blue-400" />}
-                text="Wastewater is treated as a liability, not a resource — discarding immense latent chemical energy in every treatment cycle."
-              />
-              <ProblemPoint
-                icon={<Zap className="h-5 w-5 text-yellow-400" />}
-                text="Treatment plants consume massive amounts of grid electricity to run filtration and pumping systems, with no energy recapture."
-              />
-              <ProblemPoint
-                icon={<Activity className="h-5 w-5 text-red-400" />}
-                text="No real-time visibility into system performance leaves operators unable to respond quickly to critical threshold violations."
-              />
+              {[
+                { icon: <Droplets className="h-5 w-5 text-blue-400"   />, text: 'Wastewater is treated as a liability, not a resource — discarding immense latent chemical energy in every treatment cycle.',           delay: 0.15 },
+                { icon: <Zap      className="h-5 w-5 text-yellow-400" />, text: 'Treatment plants consume massive amounts of grid electricity to run filtration and pumping systems, with no energy recapture.',       delay: 0.25 },
+                { icon: <Activity className="h-5 w-5 text-red-400"    />, text: 'No real-time visibility into system performance leaves operators unable to respond quickly to critical threshold violations.', delay: 0.35 },
+              ].map(({ icon, text, delay }) => (
+                <motion.div key={text} {...fadeUp(delay)}>
+                  <ProblemPoint icon={icon} text={text} />
+                </motion.div>
+              ))}
             </div>
           </div>
 
@@ -434,7 +479,7 @@ export default function LandingPage() {
       <section id="solution" className="py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
 
-          <div className="max-w-3xl mx-auto text-center mb-14">
+          <motion.div className="max-w-3xl mx-auto text-center mb-14" {...fadeUp()}>
             <SectionBadge>Our Approach</SectionBadge>
             <h2 className="text-3xl md:text-4xl font-bold mt-4">The Solution</h2>
             <p className="mt-4 text-muted-foreground leading-relaxed max-w-2xl mx-auto">
@@ -442,40 +487,29 @@ export default function LandingPage() {
               power plant and water filtration unit, monitored by a custom-built, real-time
               IoT architecture.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-
-            <SolutionCard
-              icon={<FlaskConical className="h-6 w-6" />}
-              iconBg="bg-blue-500/10 text-blue-400"
-              title="The Hardware"
-              subtitle="Bioreactor"
-              description="The physical MFC unit actively filters the wastewater, utilizing bacterial colonies to break down organic compounds and generate a baseline electrical current — transforming waste into a power source."
-              features={[
-                'Bacterial colony cultivation',
-                'Organic compound breakdown',
-                'Baseline electricity generation',
-                'Continuous water filtration',
-              ]}
-              borderColor="border-blue-500/20"
-            />
-
-            <SolutionCard
-              icon={<Cpu className="h-6 w-6" />}
-              iconBg="bg-indigo-500/10 text-indigo-400"
-              title="The Software"
-              subtitle="The Gatekeeper"
-              description="A safety-critical, real-time IoT monitoring system continuously ingests telemetry — pH, TDS, temperature, flow rate, and voltage. The Node.js backend validates physical data in real-time and pipes it to a live React dashboard for instant analysis."
-              features={[
-                'Real-time sensor ingestion via MQTT',
-                'Threshold-based smart alert engine',
-                'Live React dashboard with analytics',
-                'Role-based access control (admin / operator / viewer)',
-              ]}
-              borderColor="border-indigo-500/20"
-            />
-
+            {[
+              {
+                icon: <FlaskConical className="h-6 w-6" />, iconBg: 'bg-blue-500/10 text-blue-400',
+                title: 'The Hardware', subtitle: 'Bioreactor', borderColor: 'border-blue-500/20',
+                description: 'The physical MFC unit actively filters the wastewater, utilizing bacterial colonies to break down organic compounds and generate a baseline electrical current — transforming waste into a power source.',
+                features: ['Bacterial colony cultivation', 'Organic compound breakdown', 'Baseline electricity generation', 'Continuous water filtration'],
+                delay: 0.1,
+              },
+              {
+                icon: <Cpu className="h-6 w-6" />, iconBg: 'bg-indigo-500/10 text-indigo-400',
+                title: 'The Software', subtitle: 'The Gatekeeper', borderColor: 'border-indigo-500/20',
+                description: 'A safety-critical, real-time IoT monitoring system continuously ingests telemetry — pH, TDS, temperature, flow rate, and voltage. The Node.js backend validates physical data in real-time and pipes it to a live React dashboard for instant analysis.',
+                features: ['Real-time sensor ingestion via MQTT', 'Threshold-based smart alert engine', 'Live React dashboard with analytics', 'Role-based access control (admin / operator / viewer)'],
+                delay: 0.22,
+              },
+            ].map(({ delay, ...card }) => (
+              <motion.div key={card.title} {...fadeUp(delay)}>
+                <SolutionCard {...card} />
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -484,70 +518,44 @@ export default function LandingPage() {
       <section id="objectives" className="py-20 md:py-28 border-y border-border bg-card/20">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
 
-          {/* Metrics */}
-          <div className="max-w-3xl mx-auto text-center mb-14">
+          <motion.div className="max-w-3xl mx-auto text-center mb-14" {...fadeUp()}>
             <SectionBadge>Prototype Performance</SectionBadge>
             <h2 className="text-3xl md:text-4xl font-bold mt-4">Validated Results</h2>
             <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-              Our final design analysis proves the viability of the system with the following
-              recorded metrics.
+              Our final design analysis proves the viability of the system with the following recorded metrics.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-4xl mx-auto mb-20">
-            <MetricCard
-              value="70%"
-              label="COD Removal"
-              description="Highly efficient reduction of Chemical Oxygen Demand, purifying the treated water."
-              color="text-green-400"
-              glowColor="rgba(34,197,94,0.08)"
-            />
-            <MetricCard
-              value="15%"
-              label="Coulombic Efficiency"
-              description="Successfully capturing electron transfer from bacterial metabolism to generate usable power."
-              color="text-indigo-400"
-              glowColor="rgba(99,102,241,0.08)"
-            />
-            <MetricCard
-              value="43.1%"
-              prefix="−"
-              label="Permeability Reduction"
-              description="Maintaining excellent flow dynamics and membrane integrity within the system."
-              color="text-blue-400"
-              glowColor="rgba(59,130,246,0.08)"
-            />
+            {[
+              { value: '70%',   label: 'COD Removal',            description: 'Highly efficient reduction of Chemical Oxygen Demand, purifying the treated water.',                           color: 'text-green-400',  glowColor: 'rgba(34,197,94,0.08)',   delay: 0.1  },
+              { value: '15%',   label: 'Coulombic Efficiency',   description: 'Successfully capturing electron transfer from bacterial metabolism to generate usable power.',               color: 'text-indigo-400', glowColor: 'rgba(99,102,241,0.08)',  delay: 0.2  },
+              { value: '43.1%', prefix: '−', label: 'Permeability Reduction', description: 'Maintaining excellent flow dynamics and membrane integrity within the system.', color: 'text-blue-400',  glowColor: 'rgba(59,130,246,0.08)',  delay: 0.3  },
+            ].map(({ delay, ...card }) => (
+              <motion.div key={card.label} {...fadeUp(delay)}>
+                <MetricCard {...card} />
+              </motion.div>
+            ))}
           </div>
 
-          {/* Objectives */}
-          <div className="max-w-3xl mx-auto text-center mb-10">
+          <motion.div className="max-w-3xl mx-auto text-center mb-10" {...fadeUp()}>
             <SectionBadge>Goals</SectionBadge>
             <h2 className="text-2xl md:text-3xl font-bold mt-4">What We Set Out to Achieve</h2>
             <p className="mt-3 text-sm text-muted-foreground max-w-xl mx-auto">
-              Our prototype was built to prove that wastewater can be transformed into a
-              valuable, monitorable resource.
+              Our prototype was built to prove that wastewater can be transformed into a valuable, monitorable resource.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-            <ObjectiveCard
-              icon={<Droplets className="h-5 w-5 text-blue-400" />}
-              iconBg="bg-blue-500/10"
-              title="EOR Readiness"
-              description="Filtering water to meet the strict chemical standards required for Enhanced Oil Recovery injection."
-            />
-            <ObjectiveCard
-              icon={<Zap className="h-5 w-5 text-yellow-400" />}
-              iconBg="bg-yellow-500/10"
-              title="Self-Sustaining Sensor Networks"
-              description="Generating enough sustainable power from the wastewater itself to run the system's own monitoring sensors."
-            />
-            <ObjectiveCard
-              icon={<Wifi className="h-5 w-5 text-indigo-400" />}
-              iconBg="bg-indigo-500/10"
-              title="Live Digital Twinning"
-              description="Providing continuous real-time digital monitoring and simulation of the physical hardware state."
-            />
+            {[
+              { icon: <Droplets className="h-5 w-5 text-blue-400"   />, iconBg: 'bg-blue-500/10',   title: 'EOR Readiness',                 description: 'Filtering water to meet the strict chemical standards required for Enhanced Oil Recovery injection.',                              delay: 0.1  },
+              { icon: <Zap      className="h-5 w-5 text-yellow-400" />, iconBg: 'bg-yellow-500/10', title: 'Self-Sustaining Sensor Networks', description: 'Generating enough sustainable power from the wastewater itself to run the system\'s own monitoring sensors.',                  delay: 0.2  },
+              { icon: <Wifi     className="h-5 w-5 text-indigo-400" />, iconBg: 'bg-indigo-500/10', title: 'Live Digital Twinning',          description: 'Providing continuous real-time digital monitoring and simulation of the physical hardware state.',                           delay: 0.3  },
+            ].map(({ delay, ...card }) => (
+              <motion.div key={card.title} {...fadeUp(delay)}>
+                <ObjectiveCard {...card} />
+              </motion.div>
+            ))}
           </div>
 
         </div>
@@ -557,27 +565,29 @@ export default function LandingPage() {
       <section id="team" className="py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
 
-          <div className="max-w-3xl mx-auto text-center mb-14">
+          <motion.div className="max-w-3xl mx-auto text-center mb-14" {...fadeUp()}>
             <SectionBadge>The People</SectionBadge>
             <h2 className="text-3xl md:text-4xl font-bold mt-4">Meet the Team</h2>
             <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
               Six engineers across Chemical, Petroleum, Electrical, and Software Engineering
               disciplines — united to build a smarter, greener future for water treatment.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-5xl mx-auto">
-            {MEMBERS.map(m => (
-              <MemberCard key={m.name} member={m} />
+            {MEMBERS.map((m, i) => (
+              <MemberCard key={m.name} member={m} delay={i * 0.08} />
             ))}
           </div>
 
-          {/* Advisor */}
-          <div className="mt-12 flex flex-col items-center gap-1 text-center">
+          <motion.div
+            className="mt-12 flex flex-col items-center gap-1 text-center"
+            {...fadeIn(0.2)}
+          >
             <p className="text-xs text-muted-foreground">Project Coach</p>
             <p className="text-sm font-medium text-foreground">Dr. Khadijah AlSafwan</p>
             <p className="text-xs text-muted-foreground">King Fahd University of Petroleum &amp; Minerals</p>
-          </div>
+          </motion.div>
 
         </div>
       </section>
@@ -586,25 +596,21 @@ export default function LandingPage() {
       <footer className="py-10 border-t border-border">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-
             <div className="flex items-center gap-2">
               <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10">
                 <Zap className="h-3.5 w-3.5 text-primary" />
               </div>
               <span className="text-sm font-semibold">MFC System</span>
             </div>
-
             <p className="text-xs text-muted-foreground text-center">
-              KFUPM · 252 Senior Project · Team F22 
+              KFUPM · 252 Senior Project · Team F22
             </p>
-
             <Link
               to={appLink}
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {appLinkText} <ArrowRight className="h-3.5 w-3.5" />
             </Link>
-
           </div>
         </div>
       </footer>
