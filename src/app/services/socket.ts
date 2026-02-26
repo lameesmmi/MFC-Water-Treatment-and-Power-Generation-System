@@ -10,7 +10,15 @@ export function getSocket(): Socket {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: Infinity,
       reconnectionDelay: 2000,
+      auth: { token: localStorage.getItem('mfc_token') },
     });
   }
   return socket;
+}
+
+export function resetSocket(): void {
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
 }

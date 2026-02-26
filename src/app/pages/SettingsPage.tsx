@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Save, RotateCcw, Settings, Sliders, Bell, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Save, RotateCcw, Settings, Sliders, Bell, Loader2, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
 import { fetchSettings, saveSettings, resetSettings } from '@/app/services/api';
 import type { SystemSettings, ThresholdConfig } from '@/app/services/api';
 import { getSocket } from '@/app/services/socket';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { format } from 'date-fns';
 
 // ─── Static metadata ──────────────────────────────────────────────────────────
@@ -29,6 +30,9 @@ type SensorKey = keyof SystemSettings['thresholds'];
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const { user } = useAuth();
+  const canEdit = user?.role === 'admin' || user?.role === 'operator';
+
   // ── Remote state (persisted in MongoDB) ─────────────────────────────────────
   const [settings,    setSettings]    = useState<SystemSettings | null>(null);
   const [loading,     setLoading]     = useState(true);
@@ -155,26 +159,35 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleReset}
-            disabled={saveState === 'saving'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-muted text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset to Defaults
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!isDirty || saveState === 'saving'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 ${
-              saveState === 'saved'  ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
-              saveState === 'error'  ? 'bg-red-500/20 text-red-600 dark:text-red-400' :
-              'bg-primary text-primary-foreground hover:opacity-90'
-            }`}
-          >
-            {saveState === 'saving' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved!' : 'Save Changes'}
-          </button>
+          {canEdit ? (
+            <>
+              <button
+                onClick={handleReset}
+                disabled={saveState === 'saving'}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-muted text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset to Defaults
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!isDirty || saveState === 'saving'}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors disabled:opacity-50 ${
+                  saveState === 'saved'  ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
+                  saveState === 'error'  ? 'bg-red-500/20 text-red-600 dark:text-red-400' :
+                  'bg-primary text-primary-foreground hover:opacity-90'
+                }`}
+              >
+                {saveState === 'saving' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved!' : 'Save Changes'}
+              </button>
+            </>
+          ) : (
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-muted text-muted-foreground">
+              <Lock className="w-3.5 h-3.5" />
+              Read-only
+            </span>
+          )}
         </div>
       </header>
 
@@ -232,8 +245,9 @@ export default function SettingsPage() {
                               min={meta.absMin}
                               max={meta.absMax}
                               step={meta.step}
+                              disabled={!canEdit}
                               onChange={e => handleThreshold(key, 'min', e.target.value)}
-                              className={`w-24 bg-background border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary transition-colors ${
+                              className={`w-24 bg-background border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                                 minErr ? 'border-destructive' : 'border-border'
                               }`}
                             />
@@ -245,8 +259,9 @@ export default function SettingsPage() {
                               min={meta.absMin}
                               max={meta.absMax}
                               step={meta.step}
+                              disabled={!canEdit}
                               onChange={e => handleThreshold(key, 'max', e.target.value)}
-                              className={`w-24 bg-background border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary transition-colors ${
+                              className={`w-24 bg-background border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                                 minErr ? 'border-destructive' : 'border-border'
                               }`}
                             />
@@ -254,8 +269,9 @@ export default function SettingsPage() {
                           <td className="px-4 py-2.5">
                             <select
                               value={val.severity}
+                              disabled={!canEdit}
                               onChange={e => handleThreshold(key, 'severity', e.target.value)}
-                              className="bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary transition-colors"
+                              className="bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               <option value="warning">Warning</option>
                               <option value="critical">Critical</option>
@@ -284,8 +300,9 @@ export default function SettingsPage() {
                     <p className="text-xs text-muted-foreground">Generate alerts when sensor thresholds are exceeded</p>
                   </div>
                   <button
-                    onClick={handleAlertsToggle}
-                    className={`relative w-9 h-5 rounded-full transition-colors ${
+                    onClick={canEdit ? handleAlertsToggle : undefined}
+                    disabled={!canEdit}
+                    className={`relative w-9 h-5 rounded-full transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                       draft.alertsEnabled ? 'bg-green-500' : 'bg-muted-foreground/40'
                     }`}
                     aria-label="Toggle alert notifications"
