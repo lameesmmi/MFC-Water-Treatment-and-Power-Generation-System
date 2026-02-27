@@ -79,7 +79,7 @@ export function SensorDisplay({
       </div>
       <div className="flex items-baseline gap-1">
         <span className={`text-xl font-bold leading-none ${isOffline ? 'text-muted-foreground' : 'text-foreground'}`}>
-          {isOffline ? '--' : value.toFixed(decimals)}
+          {isOffline || value == null ? '--' : value.toFixed(decimals)}
         </span>
         <span className="text-[10px] text-muted-foreground">{unit}</span>
       </div>
