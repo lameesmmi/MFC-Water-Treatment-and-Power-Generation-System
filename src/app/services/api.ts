@@ -25,6 +25,7 @@ const ENDPOINTS = {
   analytics:     (range: string) => `${BASE_URL}/api/analytics?range=${range}`,
   settings:      `${BASE_URL}/api/settings`,
   settingsReset: `${BASE_URL}/api/settings/reset`,
+  pumpCommand:   `${BASE_URL}/api/pump/command`,
   authSetup:     `${BASE_URL}/api/auth/setup`,
   authLogin:     `${BASE_URL}/api/auth/login`,
   authMe:        `${BASE_URL}/api/auth/me`,
@@ -169,6 +170,26 @@ export async function resetSettings(): Promise<SystemSettings> {
   const res = await apiFetch(ENDPOINTS.settingsReset, { method: 'POST' });
   if (!res.ok) throw new Error(`POST /api/settings/reset failed: ${res.status}`);
   return res.json();
+}
+
+// ─── Pump control ─────────────────────────────────────────────────────────────
+
+/** Three commands the ESP32 understands on the command topic. */
+export type PumpCommand = 'MANUAL_ON' | 'MANUAL_OFF' | 'AUTO';
+
+/**
+ * Sends a pump control command to the backend, which publishes it to the
+ * ESP32 via MQTT. Requires operator or admin role.
+ */
+export async function sendPumpCommand(command: PumpCommand): Promise<void> {
+  const res = await apiFetch(ENDPOINTS.pumpCommand, {
+    method: 'POST',
+    body:   JSON.stringify({ command }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error ?? `POST /api/pump/command failed: ${res.status}`);
+  }
 }
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
