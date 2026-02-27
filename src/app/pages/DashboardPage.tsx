@@ -84,48 +84,57 @@ export default function DashboardPage() {
       lastDataRef.current = Date.now();
       setIsLive(true);
 
-      const newData: SensorData = {
-        ph:           data.ph as number,
-        flowRate:     data.flow_rate as number,
-        tds:          data.tds as number,
-        salinity:     data.salinity as number,
-        conductivity: data.conductivity as number,
-        temperature:  data.temperature as number,
-        voltage:      data.voltage as number,
-        current:      data.current as number,
-      };
+      // Merge with previous state — absent sensors keep their last known value
+      // so sensorData never contains undefined, preventing runtime errors in child components.
+      setSensorData(prev => ({
+        ...prev,
+        ...(data.ph           != null && { ph:           data.ph           as number }),
+        ...(data.flow_rate    != null && { flowRate:     data.flow_rate    as number }),
+        ...(data.tds          != null && { tds:          data.tds          as number }),
+        ...(data.salinity     != null && { salinity:     data.salinity     as number }),
+        ...(data.conductivity != null && { conductivity: data.conductivity as number }),
+        ...(data.temperature  != null && { temperature:  data.temperature  as number }),
+        ...(data.voltage      != null && { voltage:      data.voltage      as number }),
+        ...(data.current      != null && { current:      data.current      as number }),
+      }));
 
-      setSensorData(newData);
-      setValveStatus(data.valve_status as 'OPEN' | 'CLOSED');
+      // Only update valve status if the sensor reported one
+      if (data.valve_status != null) {
+        setValveStatus(data.valve_status as 'OPEN' | 'CLOSED');
+      }
 
+      // Each sensor is online only if its field was present in this packet
       setSensorConnected({
-        ph:           data.ph != null,
-        flowRate:     data.flow_rate != null,
-        tds:          data.tds != null,
-        salinity:     data.salinity != null,
+        ph:           data.ph           != null,
+        flowRate:     data.flow_rate    != null,
+        tds:          data.tds          != null,
+        salinity:     data.salinity     != null,
         conductivity: data.conductivity != null,
-        temperature:  data.temperature != null,
-        voltage:      data.voltage != null,
-        current:      data.current != null,
+        temperature:  data.temperature  != null,
+        voltage:      data.voltage      != null,
+        current:      data.current      != null,
       });
 
-      setFlowHistory(prev => {
-        const t = flowTimeRef.current++;
-        return [...prev.slice(-59), { time: t, flow: data.flow_rate as number }];
-      });
+      // Only push a flow history point if flow rate was reported in this packet
+      if (data.flow_rate != null) {
+        setFlowHistory(prev => {
+          const t = flowTimeRef.current++;
+          return [...prev.slice(-59), { time: t, flow: data.flow_rate as number }];
+        });
+      }
 
       const ts = new Date(data.timestamp as string);
       const entry: HistoricalData = {
-        timestamp:    data.timestamp as string,
+        timestamp:    data.timestamp    as string,
         time:         ts.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        ph:           data.ph as number,
-        flowRate:     data.flow_rate as number,
-        tds:          data.tds as number,
-        salinity:     data.salinity as number,
+        ph:           data.ph           as number,
+        flowRate:     data.flow_rate    as number,
+        tds:          data.tds          as number,
+        salinity:     data.salinity     as number,
         conductivity: data.conductivity as number,
-        temperature:  data.temperature as number,
-        voltage:      data.voltage as number,
-        current:      data.current as number,
+        temperature:  data.temperature  as number,
+        voltage:      data.voltage      as number,
+        current:      data.current      as number,
       };
       setHistoricalData(prev => [...prev.slice(-99), entry]);
     };
