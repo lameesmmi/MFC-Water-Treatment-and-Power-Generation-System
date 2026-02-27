@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { MFC3DScene } from '@/app/components/MFC3DScene';
 import {
   Zap, Droplets, Activity, Cpu, ArrowRight,
   FlaskConical, Wifi, CheckCircle, Linkedin,
@@ -57,76 +58,6 @@ function memberInitials(name: string) {
   return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
 }
 
-// ─── MFC Schematic Diagram ────────────────────────────────────────────────────
-
-function MFCDiagram() {
-  return (
-    <div className="relative p-2">
-      <div
-        className="absolute inset-0 rounded-2xl pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.14) 0%, transparent 70%)' }}
-      />
-      <svg
-        viewBox="0 0 400 248"
-        className="relative w-full"
-        role="img"
-        aria-label="Microbial Fuel Cell operating principle schematic"
-      >
-        <defs>
-          <marker id="arrI" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto">
-            <path d="M0 1 L6 3.5 L0 6z" fill="#818cf8" />
-          </marker>
-          <marker id="arrA" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto">
-            <path d="M0 1 L6 3.5 L0 6z" fill="#fbbf24" />
-          </marker>
-        </defs>
-        <rect x="5" y="55" width="181" height="162" rx="6"
-          fill="rgba(59,130,246,0.06)" stroke="#3b82f6" strokeWidth="1.5" strokeOpacity="0.5" />
-        <rect x="188" y="55" width="24" height="162" rx="2"
-          fill="rgba(251,191,36,0.08)" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4,3.5" />
-        <rect x="214" y="55" width="181" height="162" rx="6"
-          fill="rgba(34,197,94,0.06)" stroke="#22c55e" strokeWidth="1.5" strokeOpacity="0.5" />
-        <path d="M95 55 L95 22 L177 22" fill="none" stroke="#475569" strokeWidth="1.5" />
-        <path d="M223 22 L305 22 L305 55" fill="none" stroke="#475569" strokeWidth="1.5" />
-        <rect x="177" y="12" width="46" height="20" rx="3"
-          fill="#0f172a" stroke="#475569" strokeWidth="1" />
-        <text x="200" y="25.5" textAnchor="middle" fontSize="8.5" fill="#94a3b8"
-          fontFamily="ui-monospace,monospace" letterSpacing="0.5">LOAD</text>
-        <line x1="115" y1="22" x2="168" y2="22" stroke="#818cf8" strokeWidth="1.5" markerEnd="url(#arrI)" />
-        <line x1="232" y1="22" x2="285" y2="22" stroke="#818cf8" strokeWidth="1.5" markerEnd="url(#arrI)" />
-        <text x="140" y="16" textAnchor="middle" fontSize="9" fill="#818cf8">e⁻</text>
-        <text x="257" y="16" textAnchor="middle" fontSize="9" fill="#818cf8">e⁻</text>
-        <line x1="193" y1="145" x2="208" y2="145" stroke="#fbbf24" strokeWidth="1.5" markerEnd="url(#arrA)" />
-        <text x="200" y="139" textAnchor="middle" fontSize="8" fill="#fbbf24">H⁺</text>
-        {([
-          [42, 95], [85, 115], [55, 155], [122, 98], [42, 175], [112, 170], [155, 130],
-        ] as [number, number][]).map(([cx, cy], i) => (
-          <g key={i}>
-            <ellipse cx={cx} cy={cy} rx="11" ry="7.5"
-              fill="rgba(59,130,246,0.18)" stroke="#60a5fa" strokeWidth="0.8" />
-            <circle cx={cx} cy={cy} r="2" fill="#93c5fd" opacity="0.8" />
-          </g>
-        ))}
-        {([
-          [252, 95], [297, 112], [338, 92], [263, 158], [322, 158], [352, 128],
-        ] as [number, number][]).map(([cx, cy], i) => (
-          <circle key={i} cx={cx} cy={cy} r="7"
-            fill="rgba(34,197,94,0.13)" stroke="#4ade80" strokeWidth="0.7" opacity="0.75" />
-        ))}
-        <text x="95"  y="71"  textAnchor="middle" fontSize="9"   fill="#60a5fa" fontWeight="700" letterSpacing="0.8">ANODE (−)</text>
-        <text x="305" y="71"  textAnchor="middle" fontSize="9"   fill="#4ade80" fontWeight="700" letterSpacing="0.8">CATHODE (+)</text>
-        <text x="200" y="50"  textAnchor="middle" fontSize="8"   fill="#fbbf24" fontWeight="600">PEM</text>
-        <text x="95"  y="197" textAnchor="middle" fontSize="7.5" fill="#93c5fd" opacity="0.65">Organic Matter + Bacteria</text>
-        <text x="305" y="128" textAnchor="middle" fontSize="7.5" fill="#86efac" opacity="0.65">O₂ + H₂O</text>
-        <text x="95"  y="238" textAnchor="middle" fontSize="8"   fill="#64748b">Wastewater IN</text>
-        <text x="305" y="238" textAnchor="middle" fontSize="8"   fill="#64748b">Clean Water OUT</text>
-      </svg>
-      <p className="text-center text-xs text-muted-foreground mt-1 opacity-60">
-        Fig. 1 — MFC operating principle
-      </p>
-    </div>
-  );
-}
 
 // ─── Helper components ────────────────────────────────────────────────────────
 
@@ -414,18 +345,30 @@ export default function LandingPage() {
               </motion.div>
             </div>
 
-            {/* Right — diagram floats in then continuously bobs */}
+            {/* Right — interactive 3D MFC model */}
             <motion.div
+              className="relative"
               initial={{ opacity: 0, x: 32 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 0.61, 0.36, 1] }}
             >
-              <motion.div
-                animate={{ y: [0, -12, 0] }}
-                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <MFCDiagram />
-              </motion.div>
+              {/* Glow backdrop behind the canvas */}
+              <div
+                className="absolute inset-0 rounded-2xl pointer-events-none"
+                style={{
+                  background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.12) 0%, transparent 70%)',
+                }}
+              />
+
+              {/* 3D Canvas */}
+              <div className="relative h-[460px] lg:h-[520px] w-full">
+                <MFC3DScene />
+              </div>
+
+              {/* Hint caption */}
+              <p className="text-center text-xs text-muted-foreground mt-1 opacity-55 select-none">
+                Fig. 1 — Interactive 3D MFC model · Drag to rotate
+              </p>
             </motion.div>
 
           </div>
