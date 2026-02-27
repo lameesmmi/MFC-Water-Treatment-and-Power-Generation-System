@@ -4,7 +4,9 @@ import { PostTreatmentPanel } from '@/app/components/PostTreatmentPanel';
 import { PumpControlPanel } from '@/app/components/PumpControlPanel';
 import { HistoricalPanel } from '@/app/components/HistoricalPanel';
 import { getSocket } from '@/app/services/socket';
-import { fetchHistoricalReadings } from '@/app/services/api';
+import { fetchHistoricalReadings, sendPumpCommand } from '@/app/services/api';
+import type { PumpCommand } from '@/app/services/api';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 const SENSOR_TIMEOUT_MS = 15_000;
 
@@ -46,6 +48,11 @@ const ALL_OFFLINE: SensorConnectionMap = {
 };
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+
+  // Only operators and admins may send pump commands
+  const canControl = user?.role === 'admin' || user?.role === 'operator';
+
   // socketConnected = transport-level connection; isLive = data arriving within timeout
   const [socketConnected, setSocketConnected] = useState(false);
   const [isLive, setIsLive] = useState(false);
@@ -53,8 +60,11 @@ export default function DashboardPage() {
   const [sensorData, setSensorData] = useState<SensorData>(DEFAULT_SENSOR_DATA);
   const [sensorConnected, setSensorConnected] = useState<SensorConnectionMap>(ALL_OFFLINE);
   const [valveStatus, setValveStatus] = useState<'OPEN' | 'CLOSED' | null>(null);
-  const [pumpManualOverride, setPumpManualOverride] = useState(false);
-  const [pumpOn, setPumpOn] = useState(false);
+
+  // Pump mode reflects the last command sent (optimistic) and syncs via Socket.io
+  const [pumpMode, setPumpMode] = useState<PumpCommand>('AUTO');
+  const [isPumpSending, setIsPumpSending] = useState(false);
+
   const [flowHistory, setFlowHistory] = useState<Array<{ time: number; flow: number }>>([]);
   const [historicalData, setHistoricalData] = useState<HistoricalData[]>([]);
 
@@ -139,9 +149,15 @@ export default function DashboardPage() {
       setHistoricalData(prev => [...prev.slice(-99), entry]);
     };
 
+    // Keep pump mode in sync when another tab / user sends a command
+    const onPumpCommand = ({ command }: { command: PumpCommand }) => {
+      setPumpMode(command);
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('live_telemetry', onTelemetry);
+    socket.on('pump_command', onPumpCommand);
 
     // Drop isLive if no packet arrives within the timeout window
     const offlineTimer = setInterval(() => {
@@ -155,6 +171,7 @@ export default function DashboardPage() {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('live_telemetry', onTelemetry);
+      socket.off('pump_command', onPumpCommand);
       clearInterval(offlineTimer);
     };
   }, []);
@@ -166,13 +183,19 @@ export default function DashboardPage() {
   const temperatureSafe = sensorData.temperature >= 10 && sensorData.temperature <= 40;
   const systemSafe      = phSafe && flowRateSafe && tdsSafe && temperatureSafe;
 
-  // Auto pump control
-  useEffect(() => {
-    if (!pumpManualOverride) setPumpOn(systemSafe);
-  }, [systemSafe, pumpManualOverride]);
-
-  const handleManualOverride = () => setPumpManualOverride(prev => !prev);
-  const handlePumpToggle     = () => { if (pumpManualOverride) setPumpOn(prev => !prev); };
+  // Send a pump command to the backend → MQTT → ESP32.
+  // Optimistically update local state so the UI responds immediately.
+  const handlePumpCommand = async (command: PumpCommand) => {
+    setIsPumpSending(true);
+    try {
+      await sendPumpCommand(command);
+      setPumpMode(command);
+    } catch (err) {
+      console.error('[Dashboard] Pump command failed:', err);
+    } finally {
+      setIsPumpSending(false);
+    }
+  };
 
   // Derive indicator appearance from the two independent states
   const indicator = isLive
@@ -229,13 +252,13 @@ export default function DashboardPage() {
           {/* Pump Control */}
           <div className="min-h-[320px] lg:min-h-0 overflow-hidden">
             <PumpControlPanel
-              pumpOn={pumpOn}
-              manualOverride={pumpManualOverride}
+              pumpMode={pumpMode}
               flowRate={sensorData.flowRate}
               flowHistory={flowHistory}
-              onManualOverride={handleManualOverride}
-              onPumpToggle={handlePumpToggle}
               systemSafe={systemSafe}
+              isSending={isPumpSending}
+              canControl={canControl}
+              onCommand={handlePumpCommand}
             />
           </div>
         </div>
