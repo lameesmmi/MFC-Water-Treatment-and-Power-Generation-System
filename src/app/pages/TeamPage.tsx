@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { ThemeToggle } from '@/app/components/ThemeToggle';
 import { Zap, ArrowRight, Linkedin } from 'lucide-react';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -109,13 +110,16 @@ export default function TeamPage() {
             <span className="text-sm text-muted-foreground">Team</span>
           </div>
 
-          <Link
-            to={appLink}
-            className="flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            {appLinkText}
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Link
+              to={appLink}
+              className="flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              {appLinkText}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </nav>
 

@@ -1,46 +1,67 @@
 @custom-variant dark (&:is(.dark *));
 
+/* ─── Light theme (default) ─────────────────────────────────────────────── */
 :root {
   --font-size: 16px;
-  --background: #f8f9fa;
-  --foreground: #1a1d23;
-  --card: #ffffff;
-  --card-foreground: #1a1d23;
-  --popover: #ffffff;
-  --popover-foreground: #1a1d23;
-  --primary: #2563eb;
+  --background: #F7F7F7;
+  --foreground: #0F0F0F;
+  --card: #FFFFFF;
+  --card-foreground: #0F0F0F;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F0F0F;
+  --primary: #6B7E49;
   --primary-foreground: #ffffff;
-  --secondary: #f1f3f5;
-  --secondary-foreground: #1a1d23;
-  --muted: #f1f3f5;
-  --muted-foreground: #6b7280;
-  --accent: #e9ecef;
-  --accent-foreground: #1a1d23;
+  --secondary: #F0F2EC;
+  --secondary-foreground: #0F0F0F;
+  --muted: #F0F2EC;
+  --muted-foreground: #6B7665;
+  --accent: #DDE4C3;
+  --accent-foreground: #0F0F0F;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #e2e5e9;
-  --input: transparent;
-  --input-background: #f1f3f5;
-  --switch-background: #cbced4;
+  --border: #DDE4C3;
+  --input: #DDE4C3;
+  --input-background: #F0F2EC;
+  --switch-background: #c9d4b0;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #2563eb;
+  --ring: #6B7E49;
   --chart-1: #3b82f6;
   --chart-2: #22c55e;
   --chart-3: #a855f7;
   --chart-4: #f59e0b;
   --chart-5: #ef4444;
   --radius: 0.625rem;
-  --sidebar: #f8f9fa;
-  --sidebar-foreground: #1a1d23;
-  --sidebar-primary: #2563eb;
+  --sidebar: #F0F2EC;
+  --sidebar-foreground: #0F0F0F;
+  --sidebar-primary: #6B7E49;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e9ecef;
-  --sidebar-accent-foreground: #1a1d23;
-  --sidebar-border: #e2e5e9;
-  --sidebar-ring: #2563eb;
+  --sidebar-accent: #DDE4C3;
+  --sidebar-accent-foreground: #0F0F0F;
+  --sidebar-border: #DDE4C3;
+  --sidebar-ring: #6B7E49;
+
+  /* ── Landing-page brand tokens (light) ──────────────────────────────────── */
+  --lp-bg:                 #F7F7F7;
+  --lp-text:               #0F0F0F;
+  --lp-text-muted:         #5a6a50;
+  --lp-green-text:         #6B7E49;          /* deep green — readable on light bg   */
+  --lp-green-dim:          rgba(141,164,104,0.10);
+  --lp-green-border:       rgba(141,164,104,0.25);
+  --lp-green-icon-bg:      rgba(141,164,104,0.10);
+  --lp-yellow-text:        #8a7820;          /* olive  — readable on light bg       */
+  --lp-yellow-dim:         rgba(190,180,80,0.10);
+  --lp-yellow-border:      rgba(190,180,80,0.25);
+  --lp-yellow-icon-bg:     rgba(190,180,80,0.10);
+  --lp-green-deep-icon-bg: rgba(142,164,104,0.10);
+  --lp-glass-bg:           rgba(141,164,104,0.06);
+  --lp-glass-border:       rgba(141,164,104,0.22);
+  --lp-nav-bg:             rgba(247,247,247,0.92);
+  --lp-gradient-start:     #8EA468;
+  --lp-gradient-end:       #9a9040;
 }
 
+/* ─── Dark theme ─────────────────────────────────────────────────────────── */
 .dark {
   --background: #0f1117;
   --foreground: #e5e7eb;
@@ -48,7 +69,7 @@
   --card-foreground: #e5e7eb;
   --popover: #1a1d27;
   --popover-foreground: #e5e7eb;
-  --primary: #2563eb;
+  --primary: #8EA468;
   --primary-foreground: #ffffff;
   --secondary: #2a2d37;
   --secondary-foreground: #e5e7eb;
@@ -60,7 +81,7 @@
   --destructive-foreground: #fca5a5;
   --border: #2a2d37;
   --input: #2a2d37;
-  --ring: #2563eb;
+  --ring: #8EA468;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --chart-1: #3b82f6;
@@ -70,17 +91,35 @@
   --chart-5: #ef4444;
   --sidebar: #1a1d27;
   --sidebar-foreground: #e5e7eb;
-  --sidebar-primary: #3b82f6;
+  --sidebar-primary: #8EA468;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #2a2d37;
   --sidebar-accent-foreground: #e5e7eb;
   --sidebar-border: #2a2d37;
-  --sidebar-ring: #3b82f6;
+  --sidebar-ring: #8EA468;
+
+  /* ── Landing-page brand tokens (dark) ───────────────────────────────────── */
+  --lp-bg:                 #0C0F09;
+  --lp-text:               #EDF0E6;
+  --lp-text-muted:         #6A7060;
+  --lp-green-text:         #DDE4C3;          /* pastel — readable on dark bg        */
+  --lp-green-dim:          rgba(221,228,195,0.08);
+  --lp-green-border:       rgba(221,228,195,0.14);
+  --lp-green-icon-bg:      rgba(221,228,195,0.09);
+  --lp-yellow-text:        #F6F4D4;          /* pastel — readable on dark bg        */
+  --lp-yellow-dim:         rgba(246,244,212,0.07);
+  --lp-yellow-border:      rgba(246,244,212,0.16);
+  --lp-yellow-icon-bg:     rgba(246,244,212,0.09);
+  --lp-green-deep-icon-bg: rgba(142,164,104,0.09);
+  --lp-glass-bg:           rgba(221,228,195,0.055);
+  --lp-glass-border:       rgba(221,228,195,0.13);
+  --lp-nav-bg:             rgba(12,15,9,0.82);
+  --lp-gradient-start:     #DDE4C3;
+  --lp-gradient-end:       #F6F4D4;
 }
 
 /* ─── Print styles ──────────────────────────────────────────────────────────── */
 @media print {
-  /* Force light background for all elements */
   * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -91,19 +130,16 @@
     color: #111 !important;
   }
 
-  /* Remove overflow clipping so all content prints */
   .h-screen, .h-full, .overflow-hidden, .overflow-y-auto {
     height: auto !important;
     overflow: visible !important;
   }
 
-  /* Avoid page breaks inside cards and charts */
   .bg-card, .recharts-wrapper {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  /* Recharts: ensure SVG text is visible */
   .recharts-text, .recharts-cartesian-axis-tick-value {
     fill: #374151 !important;
   }

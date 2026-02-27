@@ -8,7 +8,7 @@ import "./styles/index.css";
 
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <AuthProvider>
         <App />
       </AuthProvider>
