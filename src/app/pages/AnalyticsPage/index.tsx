@@ -1,11 +1,13 @@
+import { useState }         from 'react';
 import { format }          from 'date-fns';
-import { Zap, Activity, CheckCircle2, Loader2, CalendarDays } from 'lucide-react';
+import { Zap, Activity, CheckCircle2, Loader2, CalendarDays, X } from 'lucide-react';
 import { useAnalytics }    from './useAnalytics';
 import { rangeLabel }      from './utils';
 import { AnalyticsHeader } from './components/AnalyticsHeader';
 import { KpiCard }         from './components/KpiCard';
 import { MainCharts }      from './components/MainCharts';
 import { AlertStats }      from './components/AlertStats';
+import { downloadReadingsCsv } from '@/app/services/export';
 
 export default function AnalyticsPage() {
   const {
@@ -16,6 +18,25 @@ export default function AnalyticsPage() {
 
   const currentRangeLabel = rangeLabel(range, dateRange);
 
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportError,   setExportError]   = useState<string | null>(null);
+
+  const handleExportCsv = async () => {
+    setExportLoading(true);
+    setExportError(null);
+    try {
+      await downloadReadingsCsv(
+        range === 'custom'
+          ? { customFrom: dateRange!.from, customTo: dateRange!.to }
+          : { range }
+      );
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-background text-foreground overflow-hidden">
       <AnalyticsHeader
@@ -25,7 +46,19 @@ export default function AnalyticsPage() {
         setPopoverOpen={setPopoverOpen}
         onPresetClick={handlePresetClick}
         onDateSelect={handleDateSelect}
+        onExportCsv={handleExportCsv}
+        exportLoading={exportLoading}
+        exportDisabled={loading || exportLoading || (range === 'custom' && !(dateRange?.from && dateRange?.to))}
       />
+
+      {exportError && (
+        <div className="mx-4 mt-2 flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive flex-shrink-0 print:hidden">
+          <span className="flex-1">Export failed: {exportError}</span>
+          <button onClick={() => setExportError(null)} aria-label="Dismiss export error">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Print-only header */}
       <div className="hidden print:block px-6 py-4 border-b border-gray-300">

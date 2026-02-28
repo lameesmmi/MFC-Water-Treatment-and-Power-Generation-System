@@ -4,7 +4,7 @@ const TOKEN_KEY = 'mfc_token';
 
 // ─── Internal fetch helper ─────────────────────────────────────────────────
 
-async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
+export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const token = localStorage.getItem(TOKEN_KEY);
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
