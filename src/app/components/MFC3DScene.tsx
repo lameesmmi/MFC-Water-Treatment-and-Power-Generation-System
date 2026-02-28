@@ -13,7 +13,7 @@
  *  - HTML labels for all components
  */
 
-import { Suspense, useRef, useMemo } from 'react';
+import { Suspense, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -167,11 +167,15 @@ function OrganicParticle({
 // ── MFCModel: the full scene graph ───────────────────────────────────────────
 
 function MFCModel() {
-  // Shared edge geometry for both chambers (reused for perf)
-  const chamberEdges = useMemo(
-    () => new THREE.EdgesGeometry(new THREE.BoxGeometry(CHAMBER_W, CHAMBER_H, CHAMBER_D)),
-    [],
-  );
+  // Shared edge geometry for both chambers (reused for perf).
+  // The intermediate BoxGeometry is disposed immediately after EdgesGeometry is built
+  // to avoid leaking GPU memory on every mount.
+  const chamberEdges = useMemo(() => {
+    const box   = new THREE.BoxGeometry(CHAMBER_W, CHAMBER_H, CHAMBER_D);
+    const edges = new THREE.EdgesGeometry(box);
+    box.dispose();
+    return edges;
+  }, []);
 
   // External circuit path: electrode top → arched wire → load → other electrode
   const circuitPath = useMemo(
@@ -189,9 +193,12 @@ function MFCModel() {
   );
 
   const wireGeo = useMemo(
-    () => new THREE.TubeGeometry(circuitPath, 80, 0.042, 8, false),
+    () => new THREE.TubeGeometry(circuitPath, 64, 0.042, 8, false),
     [circuitPath],
   );
+
+  // Dispose GPU-owned geometries when the scene unmounts
+  useEffect(() => () => { chamberEdges.dispose(); wireGeo.dispose(); }, [chamberEdges, wireGeo]);
 
   const loadY = CHAMBER_H / 2 + 1.28;
 
@@ -410,7 +417,12 @@ export function MFC3DScene() {
   return (
     <Canvas
       camera={{ position: [0, 1.6, 9.5], fov: 45 }}
-      gl={{ alpha: true, antialias: true }}
+      gl={{ alpha: true, antialias: true, powerPreference: 'low-power' }}
+      dpr={[1, 1.5]}
+      onCreated={({ gl }) => {
+        // Allow the browser to restore the context instead of hard-failing
+        gl.domElement.addEventListener('webglcontextlost', e => e.preventDefault());
+      }}
       style={{ background: 'transparent', width: '100%', height: '100%' }}
     >
       {/* Lighting */}

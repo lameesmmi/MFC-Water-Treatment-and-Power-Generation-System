@@ -53,17 +53,31 @@ export interface SensorReading {
 
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 export type AlertStatus   = 'active' | 'acknowledged' | 'resolved';
+export type AlertSensor   = 'ph' | 'tds' | 'temperature' | 'flow_rate' | 'device';
 
 export interface Alert {
   id:          string;
   severity:    AlertSeverity;
-  sensor:      string;
+  sensor:      AlertSensor;
   message:     string;
   value?:      number;
   threshold?:  string;
   timestamp:   string;
   status:      AlertStatus;
   resolvedAt?: string;
+}
+
+export interface AlertsParams {
+  severity?: AlertSeverity | AlertSeverity[];
+  status?:   AlertStatus   | AlertStatus[];
+  sensor?:   AlertSensor   | AlertSensor[];
+  page?:     number;
+  limit?:    number;
+}
+
+export interface AlertsResponse {
+  data:       Alert[];
+  pagination: { total: number; page: number; pages: number; limit: number };
 }
 
 export interface ThresholdConfig {
@@ -126,10 +140,14 @@ export async function fetchHistoricalReadings(limit = 100): Promise<SensorReadin
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────
 
-export async function fetchAlerts(status?: AlertStatus, limit = 100): Promise<Alert[]> {
-  const params = new URLSearchParams({ limit: String(limit) });
-  if (status) params.set('status', status);
-  const res = await apiFetch(`${ENDPOINTS.alerts}?${params}`);
+export async function fetchAlerts(params: AlertsParams = {}): Promise<AlertsResponse> {
+  const q = new URLSearchParams();
+  if (params.page)     q.set('page',  String(params.page));
+  if (params.limit)    q.set('limit', String(params.limit));
+  if (params.severity) q.set('severity', ([] as AlertSeverity[]).concat(params.severity).join(','));
+  if (params.status)   q.set('status',   ([] as AlertStatus[])  .concat(params.status)  .join(','));
+  if (params.sensor)   q.set('sensor',   ([] as AlertSensor[])  .concat(params.sensor)  .join(','));
+  const res = await apiFetch(`${ENDPOINTS.alerts}?${q}`);
   if (!res.ok) throw new Error(`GET /api/alerts failed: ${res.status}`);
   return res.json();
 }
