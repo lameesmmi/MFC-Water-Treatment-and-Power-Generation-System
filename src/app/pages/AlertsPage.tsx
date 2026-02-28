@@ -279,7 +279,7 @@ export default function AlertsPage() {
           </div>
         </div>
 
-        {/* Filter Bar */}
+        {/* Filter Bar + Pagination */}
         <div className="bg-card rounded-lg border border-border p-3 flex flex-col gap-2.5 flex-shrink-0">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-muted-foreground" />
@@ -288,6 +288,31 @@ export default function AlertsPage() {
           <FilterGroup label="Severity" options={SEVERITY_OPTIONS} active={severityFilter} onChange={changeSeverity} />
           <FilterGroup label="Status"   options={STATUS_OPTIONS}   active={statusFilter}   onChange={changeStatus}   />
           <FilterGroup label="Sensor"   options={SENSOR_OPTIONS}   active={sensorFilter}   onChange={changeSensor}   />
+
+          {/* Pagination — kept near filters for easy reach */}
+          {pagination.pages > 1 && (
+            <div className="flex items-center justify-between pt-1 border-t border-border mt-0.5">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> Previous
+              </button>
+
+              <span className="text-xs text-muted-foreground">
+                Page {page} of {pagination.pages} &nbsp;·&nbsp; {pagination.total} result{pagination.total !== 1 ? 's' : ''}
+              </span>
+
+              <button
+                disabled={page >= pagination.pages}
+                onClick={() => setPage(p => p + 1)}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border border-border bg-background text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Alert List */}
@@ -359,31 +384,6 @@ export default function AlertsPage() {
             })
           )}
         </div>
-
-        {/* Pagination */}
-        {!loading && pagination.pages > 1 && (
-          <div className="flex items-center justify-between flex-shrink-0 pt-1">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage(p => p - 1)}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" /> Previous
-            </button>
-
-            <span className="text-xs text-muted-foreground">
-              Page {page} of {pagination.pages} &nbsp;·&nbsp; {pagination.total} result{pagination.total !== 1 ? 's' : ''}
-            </span>
-
-            <button
-              disabled={page >= pagination.pages}
-              onClick={() => setPage(p => p + 1)}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              Next <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
 
       </div>
     </div>
