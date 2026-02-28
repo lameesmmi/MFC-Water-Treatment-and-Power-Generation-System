@@ -1,7 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { ProtectedLayout } from '@/app/components/ProtectedLayout';
 import LandingPage    from '@/app/pages/LandingPage';
-import TeamPage       from '@/app/pages/TeamPage';
 import DashboardPage  from '@/app/pages/DashboardPage';
 import AlertsPage     from '@/app/pages/AlertsPage';
 import AnalyticsPage  from '@/app/pages/AnalyticsPage';
@@ -13,7 +12,6 @@ export default function App() {
   return (
     <Routes>
       <Route path="/"      element={<LandingPage />} />
-      <Route path="/team"  element={<TeamPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />
