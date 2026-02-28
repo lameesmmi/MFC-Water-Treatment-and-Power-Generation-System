@@ -2,21 +2,107 @@
  * MFC3DScene — Animated interactive 3D model of a Microbial Fuel Cell
  *
  * Shows:
- *  - Anode chamber (left, blue) with pulsing bacteria colonies
- *  - Cathode chamber (right, green) with rising water bubbles
+ *  - Anode chamber (left, deep-green) with pulsing bacteria colonies
+ *  - Cathode chamber (right, olive-yellow) with rising water bubbles
  *  - Proton Exchange Membrane (PEM) between chambers
  *  - Carbon electrodes in each chamber
  *  - External circuit wire + load resistor
  *  - Animated electrons flowing through the circuit
  *  - Animated protons flowing through the PEM
  *  - Organic matter particles sinking in anode
- *  - HTML labels for all components
+ *  - HTML labels for all components (theme-aware via CSS vars)
+ *
+ * Colour palette follows the landing-page design tokens:
+ *  Primary green : #6B7E49 / #8EA468
+ *  Accent green  : #DDE4C3
+ *  Accent yellow : #F6F4D4 / #9a9040
+ *  Labels        : var(--lp-*) CSS variables (light / dark adaptive)
  */
 
 import { Suspense, useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
+
+// ── Typography / colour constants (mirrors GM in constants.ts) ────────────────
+
+const FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+
+// Hardcoded brand colours used in WebGL materials (cannot use CSS vars there)
+const CLR = {
+  anodeGlass:    '#6B7E49',   // deep green  – anode chamber
+  anodeEdge:     '#8EA468',
+  cathodeGlass:  '#9a9040',   // olive-yellow – cathode chamber
+  cathodeEdge:   '#b5a840',
+  electrode:     '#14200e',   // very dark green-black carbon
+  pem:           '#b5a040',   // amber-olive membrane
+  wire:          '#7a8a70',   // muted sage-grey wire
+  load:          '#6B7E49',   // deep green load block
+  loadEmissive:  '#4a5e30',
+  electron:      '#c8dba8',   // pale sage sphere
+  electronEmis:  '#8EA468',   // sage emissive
+  proton:        '#F6F4D4',   // pastel yellow sphere
+  protonEmis:    '#b5a040',   // olive emissive
+  bacteria:      '#8EA468',   // mid-green blob
+  bacteriaEmis:  '#DDE4C3',
+  bubble:        '#6888a8',   // dusty slate-blue bubble
+  organic:       '#c8d498',   // pale olive-yellow particle
+} as const;
+
+// CSS-variable label styles (theme-aware)
+const labelBase: React.CSSProperties = {
+  fontFamily:    FONT,
+  whiteSpace:    'nowrap',
+  backdropFilter:'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+};
+
+const chipGreen: React.CSSProperties = {
+  ...labelBase,
+  color:        'var(--lp-green-text)',
+  fontWeight:   700,
+  fontSize:     '10px',
+  letterSpacing:'0.06em',
+  background:   'var(--lp-glass-bg)',
+  border:       '1px solid var(--lp-green-border)',
+  padding:      '2px 9px',
+  borderRadius: '100px',
+};
+
+const chipYellow: React.CSSProperties = {
+  ...labelBase,
+  color:        'var(--lp-yellow-text)',
+  fontWeight:   700,
+  fontSize:     '10px',
+  letterSpacing:'0.06em',
+  background:   'var(--lp-glass-bg)',
+  border:       '1px solid var(--lp-yellow-border)',
+  padding:      '2px 9px',
+  borderRadius: '100px',
+};
+
+
+const cardMuted: React.CSSProperties = {
+  ...labelBase,
+  color:        'var(--lp-text-muted)',
+  fontSize:     '9px',
+  textAlign:    'center',
+  background:   'var(--lp-glass-bg)',
+  border:       '1px solid var(--lp-glass-border)',
+  padding:      '5px 9px',
+  borderRadius: '8px',
+  lineHeight:   1.5,
+};
+
+const tinyLabel: React.CSSProperties = {
+  ...labelBase,
+  color:        'var(--lp-text-muted)',
+  fontSize:     '8px',
+  background:   'var(--lp-glass-bg)',
+  border:       '1px solid var(--lp-glass-border)',
+  padding:      '1px 5px',
+  borderRadius: '4px',
+};
 
 // ── Geometry constants ────────────────────────────────────────────────────────
 
@@ -48,9 +134,9 @@ function Electron({
     <mesh ref={ref}>
       <sphereGeometry args={[0.085, 14, 14]} />
       <meshStandardMaterial
-        color="#a5b4fc"
-        emissive="#6366f1"
-        emissiveIntensity={3}
+        color={CLR.electron}
+        emissive={CLR.electronEmis}
+        emissiveIntensity={2.8}
       />
     </mesh>
   );
@@ -73,15 +159,15 @@ function Proton({ y, z, offset }: { y: number; z: number; offset: number }) {
     <mesh ref={ref} position={[startX, y, z]}>
       <sphereGeometry args={[0.065, 10, 10]} />
       <meshStandardMaterial
-        color="#fcd34d"
-        emissive="#d97706"
-        emissiveIntensity={2.2}
+        color={CLR.proton}
+        emissive={CLR.protonEmis}
+        emissiveIntensity={2.0}
       />
     </mesh>
   );
 }
 
-// ── Bacteria: pulsing purple blob in the anode chamber ───────────────────────
+// ── Bacteria: pulsing green blob in the anode chamber ────────────────────────
 
 function Bacteria({
   position,
@@ -102,17 +188,17 @@ function Bacteria({
     <mesh ref={ref} position={position}>
       <sphereGeometry args={[0.22, 12, 12]} />
       <meshStandardMaterial
-        color="#c084fc"
+        color={CLR.bacteria}
         transparent
-        opacity={0.88}
-        emissive="#9333ea"
-        emissiveIntensity={0.5}
+        opacity={0.82}
+        emissive={CLR.bacteriaEmis}
+        emissiveIntensity={0.4}
       />
     </mesh>
   );
 }
 
-// ── Bubble: rising water droplet in the cathode chamber ──────────────────────
+// ── Bubble: rising droplet in the cathode chamber ─────────────────────────────
 
 function Bubble({ x, z, offset }: { x: number; z: number; offset: number }) {
   const meshRef = useRef<THREE.Mesh>(null!);
@@ -130,12 +216,12 @@ function Bubble({ x, z, offset }: { x: number; z: number; offset: number }) {
   return (
     <mesh ref={meshRef} position={[x, baseY + offset * travel, z]}>
       <sphereGeometry args={[0.072, 8, 8]} />
-      <meshStandardMaterial ref={matRef} color="#93c5fd" transparent opacity={0.72} />
+      <meshStandardMaterial ref={matRef} color={CLR.bubble} transparent opacity={0.72} />
     </mesh>
   );
 }
 
-// ── OrganicParticle: wastewater particle sinking in anode ────────────────────
+// ── OrganicParticle: wastewater particle sinking in anode ─────────────────────
 
 function OrganicParticle({
   x,
@@ -159,17 +245,15 @@ function OrganicParticle({
   return (
     <mesh ref={ref} position={[x, topY - offset * travel, z]}>
       <sphereGeometry args={[0.055, 8, 8]} />
-      <meshStandardMaterial color="#7dd3fc" transparent opacity={0.55} />
+      <meshStandardMaterial color={CLR.organic} transparent opacity={0.55} />
     </mesh>
   );
 }
 
-// ── MFCModel: the full scene graph ───────────────────────────────────────────
+// ── MFCModel: the full scene graph ────────────────────────────────────────────
 
 function MFCModel() {
-  // Shared edge geometry for both chambers (reused for perf).
-  // The intermediate BoxGeometry is disposed immediately after EdgesGeometry is built
-  // to avoid leaking GPU memory on every mount.
+  // Shared edge geometry for both chambers (disposed on unmount)
   const chamberEdges = useMemo(() => {
     const box   = new THREE.BoxGeometry(CHAMBER_W, CHAMBER_H, CHAMBER_D);
     const edges = new THREE.EdgesGeometry(box);
@@ -197,7 +281,6 @@ function MFCModel() {
     [circuitPath],
   );
 
-  // Dispose GPU-owned geometries when the scene unmounts
   useEffect(() => () => { chamberEdges.dispose(); wireGeo.dispose(); }, [chamberEdges, wireGeo]);
 
   const loadY = CHAMBER_H / 2 + 1.28;
@@ -205,148 +288,107 @@ function MFCModel() {
   return (
     <group>
 
-      {/* ── Anode Chamber (left, blue) ─────────────────────────────────── */}
+      {/* ── Anode Chamber (left, deep-green) ──────────────────────────────── */}
 
-      {/* Glass walls */}
       <mesh position={[ANODE_X, 0, 0]}>
         <boxGeometry args={[CHAMBER_W, CHAMBER_H, CHAMBER_D]} />
-        <meshPhysicalMaterial color="#3b82f6" transparent opacity={0.07} roughness={0.05} side={THREE.FrontSide} />
+        <meshPhysicalMaterial color={CLR.anodeGlass} transparent opacity={0.07} roughness={0.05} side={THREE.FrontSide} />
       </mesh>
 
-      {/* Edge outline */}
       <lineSegments position={[ANODE_X, 0, 0]} geometry={chamberEdges}>
-        <lineBasicMaterial color="#3b82f6" transparent opacity={0.55} />
+        <lineBasicMaterial color={CLR.anodeEdge} transparent opacity={0.50} />
       </lineSegments>
 
-      {/* Carbon anode electrode (plate on membrane side) */}
+      {/* Carbon anode electrode */}
       <mesh position={[-ELECTRODE_X, 0, 0]}>
         <boxGeometry args={[0.07, CHAMBER_H * 0.9, CHAMBER_D * 0.9]} />
-        <meshStandardMaterial color="#0f172a" metalness={0.85} roughness={0.2} />
+        <meshStandardMaterial color={CLR.electrode} metalness={0.85} roughness={0.2} />
       </mesh>
 
       {/* Anode label */}
       <Html position={[ANODE_X, -CHAMBER_H / 2 - 0.52, 0]} center distanceFactor={6}>
-        <span style={{
-          color: '#60a5fa', fontWeight: 700, fontSize: '11px',
-          background: 'rgba(2,6,23,0.72)', padding: '2px 9px',
-          borderRadius: 4, whiteSpace: 'nowrap', letterSpacing: '0.6px',
-          border: '1px solid rgba(59,130,246,0.35)',
-        }}>
-          ANODE (−)
-        </span>
+        <span style={chipGreen}>ANODE (−)</span>
       </Html>
 
       {/* Wastewater-in label */}
       <Html position={[ANODE_X - CHAMBER_W / 2 - 0.2, 0.5, 0]} center distanceFactor={7}>
-        <div style={{
-          color: '#93c5fd', fontSize: '9px', textAlign: 'center',
-          background: 'rgba(2,6,23,0.65)', padding: '4px 8px', borderRadius: 5,
-          whiteSpace: 'nowrap', lineHeight: 1.5,
-          border: '1px solid rgba(59,130,246,0.25)',
-        }}>
-          <div style={{ fontSize: '13px' }}>🌊</div>
-          <div style={{ fontWeight: 600 }}>Wastewater IN</div>
-          <div style={{ color: '#c084fc', fontSize: '8px' }}>Bacteria + Organics</div>
+        <div style={cardMuted}>
+          <div style={{ fontWeight: 600, color: 'var(--lp-green-text)' }}>Wastewater IN</div>
+          <div style={{ fontSize: '8px' }}>Bacteria + Organics</div>
         </div>
       </Html>
 
-      {/* ── Cathode Chamber (right, green) ────────────────────────────────── */}
+      {/* ── Cathode Chamber (right, olive-yellow) ─────────────────────────── */}
 
       <mesh position={[CATHODE_X, 0, 0]}>
         <boxGeometry args={[CHAMBER_W, CHAMBER_H, CHAMBER_D]} />
-        <meshPhysicalMaterial color="#22c55e" transparent opacity={0.07} roughness={0.05} side={THREE.FrontSide} />
+        <meshPhysicalMaterial color={CLR.cathodeGlass} transparent opacity={0.07} roughness={0.05} side={THREE.FrontSide} />
       </mesh>
 
       <lineSegments position={[CATHODE_X, 0, 0]} geometry={chamberEdges}>
-        <lineBasicMaterial color="#22c55e" transparent opacity={0.55} />
+        <lineBasicMaterial color={CLR.cathodeEdge} transparent opacity={0.50} />
       </lineSegments>
 
       {/* Carbon cathode electrode */}
       <mesh position={[ELECTRODE_X, 0, 0]}>
         <boxGeometry args={[0.07, CHAMBER_H * 0.9, CHAMBER_D * 0.9]} />
-        <meshStandardMaterial color="#0f172a" metalness={0.85} roughness={0.2} />
+        <meshStandardMaterial color={CLR.electrode} metalness={0.85} roughness={0.2} />
       </mesh>
 
       {/* Cathode label */}
       <Html position={[CATHODE_X, -CHAMBER_H / 2 - 0.52, 0]} center distanceFactor={6}>
-        <span style={{
-          color: '#4ade80', fontWeight: 700, fontSize: '11px',
-          background: 'rgba(2,6,23,0.72)', padding: '2px 9px',
-          borderRadius: 4, whiteSpace: 'nowrap', letterSpacing: '0.6px',
-          border: '1px solid rgba(34,197,94,0.35)',
-        }}>
-          CATHODE (+)
-        </span>
+        <span style={chipYellow}>CATHODE (+)</span>
       </Html>
 
       {/* Clean-water-out label */}
       <Html position={[CATHODE_X + CHAMBER_W / 2 + 0.2, 0.5, 0]} center distanceFactor={7}>
-        <div style={{
-          color: '#86efac', fontSize: '9px', textAlign: 'center',
-          background: 'rgba(2,6,23,0.65)', padding: '4px 8px', borderRadius: 5,
-          whiteSpace: 'nowrap', lineHeight: 1.5,
-          border: '1px solid rgba(34,197,94,0.25)',
-        }}>
-          <div style={{ fontSize: '13px' }}>💧</div>
-          <div style={{ fontWeight: 600 }}>Clean Water OUT</div>
-          <div style={{ color: '#34d399', fontSize: '8px' }}>O₂ + H₂O</div>
+        <div style={cardMuted}>
+          <div style={{ fontWeight: 600, color: 'var(--lp-yellow-text)' }}>Clean Water OUT</div>
+          <div style={{ fontSize: '8px' }}>O₂ + H₂O</div>
         </div>
       </Html>
 
-      {/* ── Proton Exchange Membrane (PEM) ──────────────────────────────── */}
+      {/* ── Proton Exchange Membrane (PEM) ────────────────────────────────── */}
 
       <mesh>
         <boxGeometry args={[0.28, CHAMBER_H, CHAMBER_D]} />
-        <meshPhysicalMaterial color="#f59e0b" transparent opacity={0.38} roughness={0.25} />
+        <meshPhysicalMaterial color={CLR.pem} transparent opacity={0.32} roughness={0.25} />
       </mesh>
 
       <Html position={[0, CHAMBER_H / 2 - 0.18, CHAMBER_D / 2 + 0.18]} center distanceFactor={7}>
-        <span style={{
-          color: '#fbbf24', fontWeight: 700, fontSize: '9px',
-          background: 'rgba(2,6,23,0.65)', padding: '2px 6px', borderRadius: 3,
-          whiteSpace: 'nowrap', border: '1px solid rgba(245,158,11,0.35)',
-        }}>
-          PEM
-        </span>
+        <span style={{ ...chipYellow, fontSize: '9px' }}>PEM</span>
       </Html>
 
       {/* H⁺ flow hint */}
       <Html position={[0, 0, CHAMBER_D / 2 + 0.18]} center distanceFactor={7}>
-        <span style={{
-          color: '#fcd34d', fontSize: '8px',
-          background: 'rgba(2,6,23,0.6)', padding: '1px 5px', borderRadius: 3,
-          whiteSpace: 'nowrap',
-        }}>
-          H⁺ flow →
-        </span>
+        <span style={tinyLabel}>H⁺ flow →</span>
       </Html>
 
-      {/* ── External Circuit Wire ────────────────────────────────────────── */}
+      {/* ── External Circuit Wire ─────────────────────────────────────────── */}
 
       <mesh geometry={wireGeo}>
-        <meshStandardMaterial color="#94a3b8" metalness={0.9} roughness={0.12} />
+        <meshStandardMaterial color={CLR.wire} metalness={0.85} roughness={0.18} />
       </mesh>
 
       {/* e⁻ direction hint on wire */}
       <Html position={[-0.75, CHAMBER_H / 2 + 1.12, 0]} center distanceFactor={7}>
-        <span style={{ color: '#818cf8', fontSize: '9px', whiteSpace: 'nowrap' }}>e⁻ →</span>
+        <span style={{ ...tinyLabel, color: 'var(--lp-green-text)' }}>e⁻ →</span>
       </Html>
 
-      {/* ── Load / Resistor ──────────────────────────────────────────────── */}
+      {/* ── Load / Resistor ───────────────────────────────────────────────── */}
 
       <mesh position={[0, loadY, 0]}>
         <boxGeometry args={[0.5, 0.17, 0.17]} />
-        <meshStandardMaterial color="#f97316" roughness={0.55} emissive="#ea580c" emissiveIntensity={0.35} />
+        <meshStandardMaterial
+          color={CLR.load}
+          roughness={0.55}
+          emissive={CLR.loadEmissive}
+          emissiveIntensity={0.5}
+        />
       </mesh>
 
       <Html position={[0, loadY + 0.42, 0]} center distanceFactor={7}>
-        <span style={{
-          color: '#fb923c', fontWeight: 700, fontSize: '10px',
-          background: 'rgba(2,6,23,0.72)', padding: '2px 8px', borderRadius: 4,
-          whiteSpace: 'nowrap', border: '1px solid rgba(249,115,22,0.35)',
-        }}>
-          ⚡ LOAD
-        </span>
+        <span style={{ ...chipGreen, fontSize: '10px' }}>⚡ LOAD</span>
       </Html>
 
       {/* ── Bacteria colonies in anode ────────────────────────────────────── */}
@@ -382,7 +424,7 @@ function MFCModel() {
         <Proton key={i} y={y} z={z} offset={offset} />
       ))}
 
-      {/* ── Rising water bubbles in cathode ────────────────────────────────── */}
+      {/* ── Rising water bubbles in cathode ───────────────────────────────── */}
 
       {([
         [1.40,  0.30, 0.10],
@@ -395,7 +437,7 @@ function MFCModel() {
         <Bubble key={i} x={x} z={z} offset={offset} />
       ))}
 
-      {/* ── Organic matter particles sinking in anode ──────────────────────── */}
+      {/* ── Organic matter particles sinking in anode ─────────────────────── */}
 
       {([
         [-2.00,  0.40, 0.10],
@@ -411,7 +453,7 @@ function MFCModel() {
   );
 }
 
-// ── Canvas wrapper (exported) ─────────────────────────────────────────────────
+// ── Canvas wrapper (exported) ──────────────────────────────────────────────────
 
 export function MFC3DScene() {
   return (
@@ -420,17 +462,16 @@ export function MFC3DScene() {
       gl={{ alpha: true, antialias: true, powerPreference: 'low-power' }}
       dpr={[1, 1.5]}
       onCreated={({ gl }) => {
-        // Allow the browser to restore the context instead of hard-failing
         gl.domElement.addEventListener('webglcontextlost', e => e.preventDefault());
       }}
       style={{ background: 'transparent', width: '100%', height: '100%' }}
     >
-      {/* Lighting */}
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[5, 9, 6]} intensity={0.9} />
-      <pointLight position={[-6, 3, 5]} intensity={0.75} color="#818cf8" />
-      <pointLight position={[ 6, 3, 5]} intensity={0.75} color="#22c55e" />
-      <pointLight position={[ 0, 6, 3]} intensity={0.45} color="#fbbf24" />
+      {/* Lighting — green-olive family */}
+      <ambientLight intensity={0.60} />
+      <directionalLight position={[5, 9, 6]} intensity={0.85} />
+      <pointLight position={[-6, 3, 5]} intensity={0.80} color="#8EA468" />
+      <pointLight position={[ 6, 3, 5]} intensity={0.70} color="#6B7E49" />
+      <pointLight position={[ 0, 6, 3]} intensity={0.40} color="#c5b040" />
 
       {/* Scene */}
       <Suspense fallback={null}>
