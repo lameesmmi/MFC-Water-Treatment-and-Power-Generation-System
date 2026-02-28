@@ -2,7 +2,7 @@ import { format }         from 'date-fns';
 import { DayPicker }      from 'react-day-picker';
 import type { DateRange }  from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import { BarChart2, CalendarDays, Printer } from 'lucide-react';
+import { BarChart2, CalendarDays, Download, Loader2, Printer } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import type { AnalyticsRange } from '@/app/services/api';
 import { PRESET_RANGES }   from '../constants';
@@ -15,10 +15,14 @@ interface Props {
   setPopoverOpen:   (open: boolean) => void;
   onPresetClick:    (key: AnalyticsRange) => void;
   onDateSelect:     (selected: DateRange | undefined) => void;
+  onExportCsv:      () => void;
+  exportLoading:    boolean;
+  exportDisabled:   boolean;
 }
 
 export function AnalyticsHeader({
   range, dateRange, popoverOpen, setPopoverOpen, onPresetClick, onDateSelect,
+  onExportCsv, exportLoading, exportDisabled,
 }: Props) {
   return (
     <header className="print:hidden flex-shrink-0 h-12 flex items-center px-6 border-b border-border gap-3">
@@ -68,6 +72,19 @@ export function AnalyticsHeader({
             />
           </PopoverContent>
         </Popover>
+
+        <button
+          onClick={onExportCsv}
+          disabled={exportDisabled || exportLoading}
+          className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium bg-muted text-muted-foreground hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Export sensor readings as CSV"
+        >
+          {exportLoading
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            : <Download className="w-3.5 h-3.5" />
+          }
+          {exportLoading ? 'Exporting…' : 'Export CSV'}
+        </button>
 
         <button
           onClick={() => window.print()}
