@@ -3,8 +3,9 @@ import { PreTreatmentPanel }  from '@/app/components/PreTreatmentPanel';
 import { PostTreatmentPanel } from '@/app/components/PostTreatmentPanel';
 import { PumpControlPanel }   from '@/app/components/PumpControlPanel';
 import { HistoricalPanel }    from '@/app/components/HistoricalPanel';
-import { fetchHistoricalReadings, sendPumpCommand } from '@/app/services/api';
-import type { PumpCommand }   from '@/app/services/api';
+import { fetchHistoricalReadings, sendPumpCommand, fetchSettings } from '@/app/services/api';
+import type { PumpCommand, SystemSettings } from '@/app/services/api';
+import { getSocket } from '@/app/services/socket';
 import { useAuth }            from '@/app/contexts/AuthContext';
 import { useLiveTelemetry }   from './useLiveTelemetry';
 import { DashboardHeader }    from './components/DashboardHeader';
@@ -26,21 +27,43 @@ export default function DashboardPage() {
   const [historicalSeed, setHistoricalSeed] = useState(historicalData);
   const [isPumpSending, setIsPumpSending]   = useState(false);
 
-  // Seed historical panel from the API on mount
+  // Thresholds loaded from Settings — seeded with safe defaults until the API responds.
+  const [thresholds, setThresholds] = useState<SystemSettings['thresholds']>({
+    ph:          { min: 6.5,  max: 8.5,  severity: 'warning' },
+    tds:         { min: 0,    max: 5000, severity: 'warning' },
+    temperature: { min: 10,   max: 40,   severity: 'warning' },
+    flow_rate:   { min: 0.5,  max: 10,   severity: 'warning' },
+    voltage:     { min: 0,    max: 50,   severity: 'warning' },
+    current:     { min: 0,    max: 5,    severity: 'warning' },
+  });
+
+  // Seed historical panel from the API on mount; also load thresholds.
   useEffect(() => {
     fetchHistoricalReadings(100)
       .then(data => setHistoricalSeed(data))
       .catch(err  => console.warn('[Dashboard] Failed to fetch historical data:', err));
+
+    fetchSettings()
+      .then(s => setThresholds(s.thresholds))
+      .catch(err => console.warn('[Dashboard] Failed to load thresholds:', err));
+  }, []);
+
+  // Keep thresholds in sync when another user saves settings.
+  useEffect(() => {
+    const socket = getSocket();
+    const onSettingsUpdated = (updated: SystemSettings) => setThresholds(updated.thresholds);
+    socket.on('settings_updated', onSettingsUpdated);
+    return () => { socket.off('settings_updated', onSettingsUpdated); };
   }, []);
 
   // Merge live-data into the seed once socket data starts arriving
   const mergedHistorical = historicalData.length > 0 ? historicalData : historicalSeed;
 
-  // System safety checks based on water quality thresholds
-  const phSafe          = sensorData.ph >= 6.5 && sensorData.ph <= 8.5;
-  const flowRateSafe    = sensorData.flowRate >= 0.5 && sensorData.flowRate <= 10;
-  const tdsSafe         = sensorData.tds <= 5000;
-  const temperatureSafe = sensorData.temperature >= 10 && sensorData.temperature <= 40;
+  // System safety checks using user-configured thresholds (not hardcoded).
+  const phSafe          = sensorData.ph >= thresholds.ph.min && sensorData.ph <= thresholds.ph.max;
+  const flowRateSafe    = sensorData.flowRate >= thresholds.flow_rate.min && sensorData.flowRate <= thresholds.flow_rate.max;
+  const tdsSafe         = sensorData.tds <= thresholds.tds.max;
+  const temperatureSafe = sensorData.temperature >= thresholds.temperature.min && sensorData.temperature <= thresholds.temperature.max;
   const systemSafe      = phSafe && flowRateSafe && tdsSafe && temperatureSafe;
 
   // Send a pump command.
