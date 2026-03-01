@@ -20,7 +20,7 @@ export default function DashboardPage() {
     socketConnected, isLive,
     sensorData, sensorConnected, valveStatus,
     flowHistory, historicalData,
-    pumpMode, setPumpMode,
+    pumpMode,
   } = useLiveTelemetry();
 
   const [historicalSeed, setHistoricalSeed] = useState(historicalData);
@@ -43,12 +43,13 @@ export default function DashboardPage() {
   const temperatureSafe = sensorData.temperature >= 10 && sensorData.temperature <= 40;
   const systemSafe      = phSafe && flowRateSafe && tdsSafe && temperatureSafe;
 
-  // Send a pump command (optimistic update + API call)
+  // Send a pump command.
+  // The toggle only moves once the broker echoes the message back and
+  // mqttListener emits pump_command over Socket.io — no optimistic update.
   const handlePumpCommand = async (command: PumpCommand) => {
     setIsPumpSending(true);
     try {
       await sendPumpCommand(command);
-      setPumpMode(command);
     } catch (err) {
       console.error('[Dashboard] Pump command failed:', err);
     } finally {
