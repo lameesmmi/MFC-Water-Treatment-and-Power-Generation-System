@@ -1,5 +1,6 @@
-import { Bell } from 'lucide-react';
+import { Bell, Volume2 } from 'lucide-react';
 import type { SystemSettings } from '@/app/services/api';
+import { useAlertSound } from '@/app/hooks/useAlertSound';
 
 interface Props {
   draft:          SystemSettings;
@@ -12,6 +13,8 @@ interface Props {
 export function AlertDisplaySettings({
   draft, canEdit, updateInterval, onAlertsToggle, onUpdateIntervalChange,
 }: Props) {
+  const { soundEnabled, toggleSound } = useAlertSound();
+
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
@@ -37,6 +40,30 @@ export function AlertDisplaySettings({
             <span
               className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
                 draft.alertsEnabled ? 'left-[18px]' : 'left-0.5'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Critical alert sound (frontend-only, localStorage opt-in) */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-start gap-2">
+            <Volume2 className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Alert Sound</p>
+              <p className="text-xs text-muted-foreground">Play an audio cue in the browser for critical and warning alerts (stored locally)</p>
+            </div>
+          </div>
+          <button
+            onClick={toggleSound}
+            className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${
+              soundEnabled ? 'bg-green-500' : 'bg-muted-foreground/40'
+            }`}
+            aria-label={soundEnabled ? 'Disable alert sound' : 'Enable alert sound'}
+          >
+            <span
+              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                soundEnabled ? 'left-[18px]' : 'left-0.5'
               }`}
             />
           </button>
