@@ -5,42 +5,69 @@ import type { PumpCommand } from '@/app/services/api';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PumpControlPanelProps {
-  /** Current pump operating mode, reflects what was last commanded. */
-  pumpMode:   'AUTO' | 'MANUAL_ON' | 'MANUAL_OFF';
-  flowRate:   number;
+  /** Current pump operating mode — always reflects confirmed ESP32 state. */
+  pumpMode:    'AUTO' | 'MANUAL_ON' | 'MANUAL_OFF';
+  flowRate:    number;
   flowHistory: Array<{ time: number; flow: number }>;
   /** Whether all water-quality sensors are within safe thresholds. */
-  systemSafe: boolean;
-  /** True while a command HTTP request is in flight — disables buttons. */
-  isSending:  boolean;
+  systemSafe:  boolean;
+  /** True while a command HTTP request is in flight — disables controls. */
+  isSending:   boolean;
   /** False for viewer-role users who may not send commands. */
-  canControl: boolean;
-  onCommand:  (command: PumpCommand) => void;
+  canControl:  boolean;
+  onCommand:   (command: PumpCommand) => void;
 }
 
-// ─── Sub-component: Mode Button ───────────────────────────────────────────────
+// ─── Sub-component: Segmented Toggle ─────────────────────────────────────────
 
-interface ModeButtonProps {
-  label:     string;
-  active:    boolean;
-  disabled:  boolean;
-  onClick:   () => void;
-  activeClassName: string;
+interface SegmentedToggleProps {
+  leftLabel:        string;
+  rightLabel:       string;
+  /** true  = left segment is the active/confirmed state
+   *  false = right segment is the active/confirmed state */
+  leftActive:       boolean;
+  /** Prevents interaction (e.g. command in-flight or read-only role). */
+  disabled:         boolean;
+  /** Dims the whole toggle without blocking pointer events on the buttons. */
+  dimmed?:          boolean;
+  onLeft:           () => void;
+  onRight:          () => void;
+  leftActiveClass:  string;
+  rightActiveClass: string;
 }
 
-function ModeButton({ label, active, disabled, onClick, activeClassName }: ModeButtonProps) {
+function SegmentedToggle({
+  leftLabel, rightLabel, leftActive,
+  disabled, dimmed,
+  onLeft, onRight,
+  leftActiveClass, rightActiveClass,
+}: SegmentedToggleProps) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled || active}
-      className={`flex-1 py-1 rounded text-[10px] font-semibold transition-all ${
-        active
-          ? `${activeClassName} text-white cursor-default`
-          : 'bg-muted text-muted-foreground hover:bg-muted/70 disabled:opacity-40 disabled:cursor-not-allowed'
-      }`}
-    >
-      {label}
-    </button>
+    <div className={`flex rounded-lg overflow-hidden border border-border transition-opacity ${dimmed ? 'opacity-40' : ''}`}>
+      <button
+        onClick={onLeft}
+        disabled={disabled || leftActive}
+        className={`flex-1 py-1.5 text-[10px] font-semibold transition-colors ${
+          leftActive
+            ? `${leftActiveClass} text-white cursor-default`
+            : 'bg-muted text-muted-foreground hover:bg-muted/70 disabled:opacity-50 disabled:cursor-not-allowed'
+        }`}
+      >
+        {leftLabel}
+      </button>
+      <div className="w-px bg-border flex-shrink-0" />
+      <button
+        onClick={onRight}
+        disabled={disabled || !leftActive}
+        className={`flex-1 py-1.5 text-[10px] font-semibold transition-colors ${
+          !leftActive
+            ? `${rightActiveClass} text-white cursor-default`
+            : 'bg-muted text-muted-foreground hover:bg-muted/70 disabled:opacity-50 disabled:cursor-not-allowed'
+        }`}
+      >
+        {rightLabel}
+      </button>
+    </div>
   );
 }
 
@@ -55,14 +82,18 @@ export function PumpControlPanel({
   canControl,
   onCommand,
 }: PumpControlPanelProps) {
-  // Derive whether the pump is physically running from the current mode.
-  // In AUTO mode the ESP32 decides based on sensor logic; we mirror that
-  // via systemSafe. In manual modes the operator's intent is authoritative.
+  const isAuto   = pumpMode === 'AUTO';
+  const isManual = !isAuto;
+
+  // Derive physical pump state.
+  // AUTO: ESP32 decides based on sensor logic — mirror via systemSafe.
+  // Manual modes: operator intent is authoritative.
   const pumpOn =
     pumpMode === 'MANUAL_ON' ||
     (pumpMode === 'AUTO' && systemSafe);
 
-  const isManual = pumpMode !== 'AUTO';
+  // Master disable: no new commands while one is in-flight or user is a viewer.
+  const ctrlDisabled = !canControl || isSending;
 
   return (
     <div className="bg-card rounded-lg p-2 border border-border h-full flex flex-col">
@@ -100,54 +131,76 @@ export function PumpControlPanel({
             </div>
           </div>
 
-          {/* Spinner shown while a command is in-flight */}
+          {/* Spinner shown while a command is awaiting ESP32 confirmation */}
           {isSending && (
             <Loader2 className="w-4 h-4 text-muted-foreground animate-spin flex-shrink-0" />
           )}
         </div>
 
-        {/* ── Mode Selector ───────────────────────────────────────────── */}
-        <div className="flex-shrink-0">
-          <div className="flex items-center gap-1 mb-1">
-            {isManual
-              ? <Hand className="w-3 h-3 text-orange-500" />
-              : <Cpu  className="w-3 h-3 text-green-500"  />
-            }
-            <span className={`text-[10px] font-medium ${
-              isManual ? 'text-orange-500' : 'text-green-500 dark:text-green-400'
-            }`}>
-              {isManual ? 'Manual Override Active' : 'Automatic Control'}
-            </span>
+        {/* ── Controls ────────────────────────────────────────────────── */}
+        <div className="flex-shrink-0 space-y-2">
+
+          {/* — Toggle 1: Mode ─────────────────────────────────────────── */}
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              {isManual
+                ? <Hand className="w-3 h-3 text-orange-500" />
+                : <Cpu  className="w-3 h-3 text-green-500"  />
+              }
+              <span className={`text-[10px] font-medium ${
+                isManual ? 'text-orange-500' : 'text-green-500 dark:text-green-400'
+              }`}>
+                {isManual ? 'Manual Override Active' : 'Automatic Control'}
+              </span>
+            </div>
+            {/*
+              Switching to MANUAL defaults to MANUAL_OFF (safe start).
+              Toggle active state reflects pumpMode from ESP32 — no local state.
+            */}
+            <SegmentedToggle
+              leftLabel="AUTO"
+              rightLabel="MANUAL"
+              leftActive={isAuto}
+              disabled={ctrlDisabled}
+              onLeft={() => onCommand('AUTO')}
+              onRight={() => onCommand('MANUAL_OFF')}
+              leftActiveClass="bg-green-600"
+              rightActiveClass="bg-orange-500"
+            />
           </div>
 
-          <div className="flex gap-1">
-            <ModeButton
-              label="AUTO"
-              active={pumpMode === 'AUTO'}
-              disabled={!canControl || isSending}
-              onClick={() => onCommand('AUTO')}
-              activeClassName="bg-green-600"
-            />
-            <ModeButton
-              label="MAN ON"
-              active={pumpMode === 'MANUAL_ON'}
-              disabled={!canControl || isSending}
-              onClick={() => onCommand('MANUAL_ON')}
-              activeClassName="bg-blue-600"
-            />
-            <ModeButton
-              label="MAN OFF"
-              active={pumpMode === 'MANUAL_OFF'}
-              disabled={!canControl || isSending}
-              onClick={() => onCommand('MANUAL_OFF')}
-              activeClassName="bg-orange-600"
+          {/* — Toggle 2: Power (only actionable in Manual mode) ─────── */}
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <Power className={`w-3 h-3 ${
+                isAuto
+                  ? 'text-muted-foreground'
+                  : pumpOn ? 'text-green-500' : 'text-red-500'
+              }`} />
+              <span className={`text-[10px] font-medium ${isAuto ? 'text-muted-foreground' : 'text-foreground'}`}>
+                {isAuto ? 'Power (managed by ESP32)' : 'Power'}
+              </span>
+            </div>
+            {/*
+              Dimmed + disabled in AUTO mode — ESP32 controls the pump.
+              In Manual mode, reflects confirmed MANUAL_ON / MANUAL_OFF state.
+              Left = OFF (!pumpOn), Right = ON (pumpOn).
+            */}
+            <SegmentedToggle
+              leftLabel="OFF"
+              rightLabel="ON"
+              leftActive={!pumpOn}
+              disabled={ctrlDisabled || isAuto}
+              dimmed={isAuto}
+              onLeft={() => onCommand('MANUAL_OFF')}
+              onRight={() => onCommand('MANUAL_ON')}
+              leftActiveClass="bg-red-500"
+              rightActiveClass="bg-blue-600"
             />
           </div>
 
           {!canControl && (
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              Viewer role — read only
-            </p>
+            <p className="text-[10px] text-muted-foreground">Viewer role — read only</p>
           )}
         </div>
 
