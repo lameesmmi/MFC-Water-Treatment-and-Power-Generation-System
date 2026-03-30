@@ -1,12 +1,14 @@
 import { useState }         from 'react';
 import { format }          from 'date-fns';
-import { Zap, Activity, CheckCircle2, Loader2, CalendarDays, X } from 'lucide-react';
+import { Loader2, CalendarDays, X } from 'lucide-react';
 import { useAnalytics }    from './useAnalytics';
 import { rangeLabel }      from './utils';
 import { AnalyticsHeader } from './components/AnalyticsHeader';
 import { KpiCard }         from './components/KpiCard';
 import { MainCharts }      from './components/MainCharts';
-import { AlertStats }      from './components/AlertStats';
+import { AlertStats }        from './components/AlertStats';
+import { CorrelationView }   from './components/CorrelationView';
+import { RawDataTable }      from './components/RawDataTable';
 import { downloadReadingsCsv } from '@/app/services/export';
 
 export default function AnalyticsPage() {
@@ -93,45 +95,15 @@ export default function AnalyticsPage() {
         {!loading && !error && data && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 flex-shrink-0">
-              <KpiCard
-                label="Total Readings"
-                value={String(data.summary.totalReadings)}
-                unit="records"
-                icon={Activity}
-                color="text-blue-500 dark:text-blue-400"
-                bg="bg-blue-500/10"
-                border="border-blue-500/40"
-              />
-              <KpiCard
-                label="EOR Pass Rate"
-                value={data.summary.eorPassRate !== null ? data.summary.eorPassRate.toFixed(1) : '—'}
-                unit={data.summary.eorPassRate !== null ? '%' : ''}
-                icon={CheckCircle2}
-                color="text-green-500 dark:text-green-400"
-                bg="bg-green-500/10"
-                border="border-green-500/40"
-              />
-              <KpiCard
-                label="Total Energy"
-                value={data.summary.totalEnergyWh.toFixed(3)}
-                unit="Wh"
-                icon={Zap}
-                color="text-yellow-500 dark:text-yellow-400"
-                bg="bg-yellow-500/10"
-                border="border-yellow-500/40"
-              />
-              <KpiCard
-                label="Avg Power"
-                value={data.summary.avgPowerW.toFixed(3)}
-                unit="W"
-                icon={Activity}
-                color="text-purple-500 dark:text-purple-400"
-                bg="bg-purple-500/10"
-                border="border-purple-500/40"
-              />
+              <KpiCard label="Total Readings" value={String(data.summary.totalReadings)}                                                          unit="records" />
+              <KpiCard label="EOR Pass Rate"  value={data.summary.eorPassRate !== null ? data.summary.eorPassRate.toFixed(1) : '—'} unit={data.summary.eorPassRate !== null ? '%' : ''} />
+              <KpiCard label="Total Energy"   value={data.summary.totalEnergyWh.toFixed(3)}                                                     unit="Wh"      />
+              <KpiCard label="Avg Power"      value={data.summary.avgPowerW.toFixed(3)}                                                          unit="W"       />
             </div>
 
+            <RawDataTable range={range} dateRange={dateRange} />
             <MainCharts data={data} />
+            <CorrelationView range={range} dateRange={dateRange} />
             <AlertStats  data={data} />
           </>
         )}

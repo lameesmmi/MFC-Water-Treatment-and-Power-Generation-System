@@ -25,7 +25,9 @@ const ENDPOINTS = {
   analytics:     (range: string) => `${BASE_URL}/api/analytics?range=${range}`,
   settings:      `${BASE_URL}/api/settings`,
   settingsReset: `${BASE_URL}/api/settings/reset`,
-  pumpCommand:   `${BASE_URL}/api/pump/command`,
+  pumpCommand:    `${BASE_URL}/api/pump/command`,
+  pump2Command:   `${BASE_URL}/api/pump/command2`,
+  correlation:    `${BASE_URL}/api/analytics/correlation`,
   authSetup:     `${BASE_URL}/api/auth/setup`,
   authLogin:     `${BASE_URL}/api/auth/login`,
   authMe:        `${BASE_URL}/api/auth/me`,
@@ -138,6 +140,26 @@ export async function fetchHistoricalReadings(limit = 100): Promise<SensorReadin
   return res.json();
 }
 
+/**
+ * Fetches up to `limit` readings within a date range, newest-first.
+ * Used by the analytics raw-data table.
+ */
+export async function fetchReadingsInRange(
+  from: Date,
+  to:   Date,
+  limit = 1000,
+): Promise<SensorReading[]> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    sort:  'desc',
+    from:  from.toISOString(),
+    to:    to.toISOString(),
+  });
+  const res = await apiFetch(`${ENDPOINTS.readings}?${params}`);
+  if (!res.ok) throw new Error(`GET /api/readings failed: ${res.status}`);
+  return res.json();
+}
+
 // ─── Alerts ───────────────────────────────────────────────────────────────────
 
 export async function fetchAlerts(params: AlertsParams = {}): Promise<AlertsResponse> {
@@ -190,10 +212,59 @@ export async function resetSettings(): Promise<SystemSettings> {
   return res.json();
 }
 
+// ─── Correlation ──────────────────────────────────────────────────────────────
+
+export const CORRELATION_SENSORS = [
+  { key: 'ph',           label: 'pH'               },
+  { key: 'tds',          label: 'TDS (ppm)'        },
+  { key: 'temperature',  label: 'Temperature (°C)' },
+  { key: 'flow_rate',    label: 'Flow Rate (L/min)'},
+  { key: 'salinity',     label: 'Salinity'         },
+  { key: 'conductivity', label: 'Conductivity'     },
+  { key: 'current',      label: 'Current (A)'      },
+  { key: 'voltage',      label: 'Voltage (V)'      },
+  { key: 'power',        label: 'Power (W)'        },
+] as const;
+
+export type CorrelationSensorKey = typeof CORRELATION_SENSORS[number]['key'];
+
+export interface CorrelationPoint { x: number; y: number }
+
+export interface CorrelationData {
+  sensorX: string;
+  sensorY: string;
+  data:    CorrelationPoint[];
+}
+
+export async function fetchCorrelation(
+  sensorX: CorrelationSensorKey,
+  sensorY: CorrelationSensorKey,
+  range?: AnalyticsRange,
+  from?: Date,
+  to?: Date,
+): Promise<CorrelationData> {
+  const params = new URLSearchParams({ sensorX, sensorY });
+  if (from && to) {
+    params.set('from', from.toISOString());
+    params.set('to',   to.toISOString());
+  } else {
+    params.set('range', range ?? '24h');
+  }
+  const res = await apiFetch(`${ENDPOINTS.correlation}?${params}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error ?? `GET /api/analytics/correlation failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 // ─── Pump control ─────────────────────────────────────────────────────────────
 
-/** Three commands the ESP32 understands on the command topic. */
+/** Three commands the ESP32 understands on the Pump 1 command topic. */
 export type PumpCommand = 'MANUAL_ON' | 'MANUAL_OFF' | 'AUTO';
+
+/** Two manual-only commands for Pump 2. */
+export type Pump2Command = 'MANUAL_ON' | 'MANUAL_OFF';
 
 /**
  * Sends a pump control command to the backend, which publishes it to the
@@ -207,6 +278,20 @@ export async function sendPumpCommand(command: PumpCommand): Promise<void> {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error ?? `POST /api/pump/command failed: ${res.status}`);
+  }
+}
+
+/**
+ * Sends a manual-only pump command for Pump 2 (MANUAL_ON / MANUAL_OFF).
+ */
+export async function sendPump2Command(command: Pump2Command): Promise<void> {
+  const res = await apiFetch(ENDPOINTS.pump2Command, {
+    method: 'POST',
+    body:   JSON.stringify({ command }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error ?? `POST /api/pump/command2 failed: ${res.status}`);
   }
 }
 

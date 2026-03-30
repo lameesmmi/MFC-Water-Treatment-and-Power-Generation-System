@@ -3,8 +3,8 @@ import { PreTreatmentPanel }  from '@/app/components/PreTreatmentPanel';
 import { PostTreatmentPanel } from '@/app/components/PostTreatmentPanel';
 import { PumpControlPanel }   from '@/app/components/PumpControlPanel';
 import { HistoricalPanel }    from '@/app/components/HistoricalPanel';
-import { fetchHistoricalReadings, sendPumpCommand, fetchSettings } from '@/app/services/api';
-import type { PumpCommand, SystemSettings } from '@/app/services/api';
+import { fetchHistoricalReadings, sendPumpCommand, sendPump2Command, fetchSettings } from '@/app/services/api';
+import type { PumpCommand, Pump2Command, SystemSettings } from '@/app/services/api';
 import { getSocket } from '@/app/services/socket';
 import { useAuth }            from '@/app/contexts/AuthContext';
 import { useLiveTelemetry }   from './useLiveTelemetry';
@@ -21,11 +21,12 @@ export default function DashboardPage() {
     socketConnected, isLive,
     sensorData, sensorConnected, valveStatus,
     flowHistory, historicalData,
-    pumpMode,
+    pumpMode, pump2Mode,
   } = useLiveTelemetry();
 
   const [historicalSeed, setHistoricalSeed] = useState(historicalData);
   const [isPumpSending, setIsPumpSending]   = useState(false);
+  const [isPump2Sending, setIsPump2Sending] = useState(false);
 
   // Thresholds loaded from Settings — seeded with safe defaults until the API responds.
   const [thresholds, setThresholds] = useState<SystemSettings['thresholds']>({
@@ -80,6 +81,17 @@ export default function DashboardPage() {
     }
   };
 
+  const handlePump2Command = async (command: Pump2Command) => {
+    setIsPump2Sending(true);
+    try {
+      await sendPump2Command(command);
+    } catch (err) {
+      console.error('[Dashboard] Pump 2 command failed:', err);
+    } finally {
+      setIsPump2Sending(false);
+    }
+  };
+
   return (
     <div className="h-screen w-full bg-background text-foreground overflow-hidden flex flex-col lg:overflow-hidden overflow-y-auto">
       <DashboardHeader isLive={isLive} socketConnected={socketConnected} />
@@ -124,6 +136,9 @@ export default function DashboardPage() {
               isSending={isPumpSending}
               canControl={canControl}
               onCommand={handlePumpCommand}
+              pump2Mode={pump2Mode}
+              isPump2Sending={isPump2Sending}
+              onPump2Command={handlePump2Command}
             />
           </div>
         </div>

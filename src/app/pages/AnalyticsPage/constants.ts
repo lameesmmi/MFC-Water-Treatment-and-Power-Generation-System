@@ -22,11 +22,15 @@ export const SEVERITY_COLORS: Record<string, string> = {
 };
 
 export const TOOLTIP_STYLE = {
+  wrapperStyle: { outline: 'none' },
   contentStyle: {
     backgroundColor: 'var(--card)',
     border:          '1px solid var(--border)',
+    borderRadius:    '6px',
     fontSize:        '10px',
     color:           'var(--foreground)',
+    boxShadow:       '0 4px 12px rgba(0,0,0,0.15)',
   },
-  labelStyle: { color: 'var(--muted-foreground)' },
+  labelStyle: { color: 'var(--muted-foreground)', marginBottom: '2px' },
+  itemStyle:  { color: 'var(--foreground)' },
 };

@@ -5,7 +5,7 @@ interface Props {
 export function DashboardFooter({ valveStatus }: Props) {
   return (
     <footer className="h-8 flex-shrink-0 flex items-center justify-center text-xs text-muted-foreground border-t border-border">
-      <p>MFC Water Treatment System</p>
+
       {valveStatus && (
         <span className={`ml-3 px-2 py-0.5 rounded text-[10px] font-semibold ${
           valveStatus === 'OPEN'
