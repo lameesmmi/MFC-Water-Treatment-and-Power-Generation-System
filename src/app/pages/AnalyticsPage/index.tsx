@@ -6,7 +6,8 @@ import { rangeLabel }      from './utils';
 import { AnalyticsHeader } from './components/AnalyticsHeader';
 import { KpiCard }         from './components/KpiCard';
 import { MainCharts }      from './components/MainCharts';
-import { AlertStats }      from './components/AlertStats';
+import { AlertStats }        from './components/AlertStats';
+import { CorrelationView }   from './components/CorrelationView';
 import { downloadReadingsCsv } from '@/app/services/export';
 
 export default function AnalyticsPage() {
@@ -132,6 +133,7 @@ export default function AnalyticsPage() {
             </div>
 
             <MainCharts data={data} />
+            <CorrelationView range={range} dateRange={dateRange} />
             <AlertStats  data={data} />
           </>
         )}

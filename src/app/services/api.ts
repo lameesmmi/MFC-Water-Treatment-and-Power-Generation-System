@@ -25,8 +25,9 @@ const ENDPOINTS = {
   analytics:     (range: string) => `${BASE_URL}/api/analytics?range=${range}`,
   settings:      `${BASE_URL}/api/settings`,
   settingsReset: `${BASE_URL}/api/settings/reset`,
-  pumpCommand:   `${BASE_URL}/api/pump/command`,
-  pump2Command:  `${BASE_URL}/api/pump/command2`,
+  pumpCommand:    `${BASE_URL}/api/pump/command`,
+  pump2Command:   `${BASE_URL}/api/pump/command2`,
+  correlation:    `${BASE_URL}/api/analytics/correlation`,
   authSetup:     `${BASE_URL}/api/auth/setup`,
   authLogin:     `${BASE_URL}/api/auth/login`,
   authMe:        `${BASE_URL}/api/auth/me`,
@@ -188,6 +189,52 @@ export async function saveSettings(body: Partial<Omit<SystemSettings, 'updatedAt
 export async function resetSettings(): Promise<SystemSettings> {
   const res = await apiFetch(ENDPOINTS.settingsReset, { method: 'POST' });
   if (!res.ok) throw new Error(`POST /api/settings/reset failed: ${res.status}`);
+  return res.json();
+}
+
+// ─── Correlation ──────────────────────────────────────────────────────────────
+
+export const CORRELATION_SENSORS = [
+  { key: 'ph',           label: 'pH'               },
+  { key: 'tds',          label: 'TDS (ppm)'        },
+  { key: 'temperature',  label: 'Temperature (°C)' },
+  { key: 'flow_rate',    label: 'Flow Rate (L/min)'},
+  { key: 'salinity',     label: 'Salinity'         },
+  { key: 'conductivity', label: 'Conductivity'     },
+  { key: 'current',      label: 'Current (A)'      },
+  { key: 'voltage',      label: 'Voltage (V)'      },
+  { key: 'power',        label: 'Power (W)'        },
+] as const;
+
+export type CorrelationSensorKey = typeof CORRELATION_SENSORS[number]['key'];
+
+export interface CorrelationPoint { x: number; y: number }
+
+export interface CorrelationData {
+  sensorX: string;
+  sensorY: string;
+  data:    CorrelationPoint[];
+}
+
+export async function fetchCorrelation(
+  sensorX: CorrelationSensorKey,
+  sensorY: CorrelationSensorKey,
+  range?: AnalyticsRange,
+  from?: Date,
+  to?: Date,
+): Promise<CorrelationData> {
+  const params = new URLSearchParams({ sensorX, sensorY });
+  if (from && to) {
+    params.set('from', from.toISOString());
+    params.set('to',   to.toISOString());
+  } else {
+    params.set('range', range ?? '24h');
+  }
+  const res = await apiFetch(`${ENDPOINTS.correlation}?${params}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error ?? `GET /api/analytics/correlation failed: ${res.status}`);
+  }
   return res.json();
 }
 
