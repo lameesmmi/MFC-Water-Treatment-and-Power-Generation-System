@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getSocket } from '@/app/services/socket';
-import type { PumpCommand } from '@/app/services/api';
+import type { PumpCommand, Pump2Command } from '@/app/services/api';
 import { SensorData, SensorConnectionMap, HistoricalData } from './types';
 import { DEFAULT_SENSOR_DATA, ALL_OFFLINE, SENSOR_TIMEOUT_MS } from './constants';
 
@@ -14,6 +14,8 @@ interface LiveTelemetry {
   historicalData:  HistoricalData[];
   pumpMode:        PumpCommand;
   setPumpMode:     (cmd: PumpCommand) => void;
+  pump2Mode:       Pump2Command;
+  setPump2Mode:    (cmd: Pump2Command) => void;
 }
 
 export function useLiveTelemetry(): LiveTelemetry {
@@ -23,6 +25,7 @@ export function useLiveTelemetry(): LiveTelemetry {
   const [sensorConnected, setSensorConnected] = useState<SensorConnectionMap>(ALL_OFFLINE);
   const [valveStatus, setValveStatus]         = useState<'OPEN' | 'CLOSED' | null>(null);
   const [pumpMode, setPumpMode]               = useState<PumpCommand>('AUTO');
+  const [pump2Mode, setPump2Mode]             = useState<Pump2Command>('MANUAL_OFF');
   const [flowHistory, setFlowHistory]         = useState<Array<{ time: number; flow: number }>>([]);
   const [historicalData, setHistoricalData]   = useState<HistoricalData[]>([]);
 
@@ -95,14 +98,14 @@ export function useLiveTelemetry(): LiveTelemetry {
     };
 
     // Sync pump mode when another client sends a command
-    const onPumpCommand = ({ command }: { command: PumpCommand }) => {
-      setPumpMode(command);
-    };
+    const onPumpCommand  = ({ command }: { command: PumpCommand  }) => setPumpMode(command);
+    const onPump2Command = ({ command }: { command: Pump2Command }) => setPump2Mode(command);
 
     socket.on('connect',        onConnect);
     socket.on('disconnect',     onDisconnect);
     socket.on('live_telemetry', onTelemetry);
     socket.on('pump_command',   onPumpCommand);
+    socket.on('pump2_command',  onPump2Command);
 
     // Drop isLive if no packet arrives within the timeout window
     const offlineTimer = setInterval(() => {
@@ -117,6 +120,7 @@ export function useLiveTelemetry(): LiveTelemetry {
       socket.off('disconnect',     onDisconnect);
       socket.off('live_telemetry', onTelemetry);
       socket.off('pump_command',   onPumpCommand);
+      socket.off('pump2_command',  onPump2Command);
       clearInterval(offlineTimer);
     };
   }, []);
@@ -126,5 +130,6 @@ export function useLiveTelemetry(): LiveTelemetry {
     sensorData, sensorConnected, valveStatus,
     flowHistory, historicalData,
     pumpMode, setPumpMode,
+    pump2Mode, setPump2Mode,
   };
 }

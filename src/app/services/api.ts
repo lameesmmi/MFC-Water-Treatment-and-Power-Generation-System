@@ -26,6 +26,7 @@ const ENDPOINTS = {
   settings:      `${BASE_URL}/api/settings`,
   settingsReset: `${BASE_URL}/api/settings/reset`,
   pumpCommand:   `${BASE_URL}/api/pump/command`,
+  pump2Command:  `${BASE_URL}/api/pump/command2`,
   authSetup:     `${BASE_URL}/api/auth/setup`,
   authLogin:     `${BASE_URL}/api/auth/login`,
   authMe:        `${BASE_URL}/api/auth/me`,
@@ -192,8 +193,11 @@ export async function resetSettings(): Promise<SystemSettings> {
 
 // ─── Pump control ─────────────────────────────────────────────────────────────
 
-/** Three commands the ESP32 understands on the command topic. */
+/** Three commands the ESP32 understands on the Pump 1 command topic. */
 export type PumpCommand = 'MANUAL_ON' | 'MANUAL_OFF' | 'AUTO';
+
+/** Two manual-only commands for Pump 2. */
+export type Pump2Command = 'MANUAL_ON' | 'MANUAL_OFF';
 
 /**
  * Sends a pump control command to the backend, which publishes it to the
@@ -207,6 +211,20 @@ export async function sendPumpCommand(command: PumpCommand): Promise<void> {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error ?? `POST /api/pump/command failed: ${res.status}`);
+  }
+}
+
+/**
+ * Sends a manual-only pump command for Pump 2 (MANUAL_ON / MANUAL_OFF).
+ */
+export async function sendPump2Command(command: Pump2Command): Promise<void> {
+  const res = await apiFetch(ENDPOINTS.pump2Command, {
+    method: 'POST',
+    body:   JSON.stringify({ command }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error ?? `POST /api/pump/command2 failed: ${res.status}`);
   }
 }
 
