@@ -181,8 +181,17 @@ export function CorrelationView({ range, dateRange }: CorrelationViewProps) {
               </YAxis>
               <Tooltip
                 cursor={{ strokeDasharray: '3 3' }}
-                contentStyle={TOOLTIP_STYLE.contentStyle}
-                labelStyle={TOOLTIP_STYLE.labelStyle}
+                wrapperStyle={{ outline: 'none' }}
+                contentStyle={{
+                  backgroundColor: 'var(--card)',
+                  border:          '1px solid var(--border)',
+                  borderRadius:    '6px',
+                  fontSize:        '10px',
+                  color:           'var(--foreground)',
+                  boxShadow:       '0 4px 12px var(--shadow, rgba(0,0,0,0.15))',
+                }}
+                labelStyle={{ color: 'var(--muted-foreground)', marginBottom: '2px' }}
+                itemStyle={{ color: 'var(--foreground)' }}
                 formatter={(value: number, name: string) => [
                   Number(value).toFixed(3),
                   name === 'x' ? xLabel : yLabel,

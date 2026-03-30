@@ -202,8 +202,7 @@ export function PumpControlPanel({
           {/* Mode label — manual only, no toggle (spacer matches pump 1 mode toggle height) */}
           <div>
             <div className="flex items-center gap-1 mb-1">
-              <Hand className="w-3 h-3 text-orange-500" />
-              <span className="text-[10px] font-medium text-orange-500">Manual Only</span>
+              <span className="text-[10px] font-medium text-orange-500">Manual Control Only</span>
             </div>
             {/* Spacer matching the SegmentedToggle height so power toggles align */}
             <div className="h-[26px]" />
@@ -245,7 +244,7 @@ export function PumpControlPanel({
             ? 'text-green-600 dark:text-green-400'
             : 'text-red-600 dark:text-red-400'
         }`}>
-          {systemSafe ? '✓ Water safe for MFC' : '⚠ Water is unsafe for MFC'}
+          {systemSafe ? '✓ Water safe for MFC' : '⚠ Water is unsafe to enter MFC'}
         </div>
         {!systemSafe && pumpMode === 'AUTO' && (
           <div className="text-xs text-red-500 dark:text-red-300 mt-0.5">
@@ -253,42 +252,6 @@ export function PumpControlPanel({
           </div>
         )}
       </div>
-
-      {/* ── Flow Rate History ────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-hidden mt-2">
-        <div className="text-xs text-muted-foreground mb-0.5">Flow Rate History (Water-in)</div>
-        <div className="h-[calc(100%-1rem)]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={flowHistory.slice(-30)}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="time" hide />
-              <YAxis
-                className="stroke-muted-foreground"
-                tick={{ fontSize: 8 }}
-                width={25}
-                domain={[0, 'auto']}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'var(--card)',
-                  border: '1px solid var(--border)',
-                  fontSize: '9px',
-                  color: 'var(--foreground)',
-                }}
-                labelStyle={{ color: 'var(--muted-foreground)' }}
-              />
-              <Line
-                type="monotone"
-                dataKey="flow"
-                stroke="#22c55e"
-                strokeWidth={2}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
     </div>
   );
 }
