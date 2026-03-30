@@ -140,6 +140,26 @@ export async function fetchHistoricalReadings(limit = 100): Promise<SensorReadin
   return res.json();
 }
 
+/**
+ * Fetches up to `limit` readings within a date range, newest-first.
+ * Used by the analytics raw-data table.
+ */
+export async function fetchReadingsInRange(
+  from: Date,
+  to:   Date,
+  limit = 1000,
+): Promise<SensorReading[]> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    sort:  'desc',
+    from:  from.toISOString(),
+    to:    to.toISOString(),
+  });
+  const res = await apiFetch(`${ENDPOINTS.readings}?${params}`);
+  if (!res.ok) throw new Error(`GET /api/readings failed: ${res.status}`);
+  return res.json();
+}
+
 // ─── Alerts ───────────────────────────────────────────────────────────────────
 
 export async function fetchAlerts(params: AlertsParams = {}): Promise<AlertsResponse> {

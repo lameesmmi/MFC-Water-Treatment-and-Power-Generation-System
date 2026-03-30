@@ -8,6 +8,7 @@ import { KpiCard }         from './components/KpiCard';
 import { MainCharts }      from './components/MainCharts';
 import { AlertStats }        from './components/AlertStats';
 import { CorrelationView }   from './components/CorrelationView';
+import { RawDataTable }      from './components/RawDataTable';
 import { downloadReadingsCsv } from '@/app/services/export';
 
 export default function AnalyticsPage() {
@@ -132,6 +133,7 @@ export default function AnalyticsPage() {
               />
             </div>
 
+            <RawDataTable range={range} dateRange={dateRange} />
             <MainCharts data={data} />
             <CorrelationView range={range} dateRange={dateRange} />
             <AlertStats  data={data} />
