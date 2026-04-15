@@ -27,6 +27,7 @@ const ENDPOINTS = {
   settingsReset: `${BASE_URL}/api/settings/reset`,
   pumpCommand:    `${BASE_URL}/api/pump/command`,
   pump2Command:   `${BASE_URL}/api/pump/command2`,
+  pump3Command:   `${BASE_URL}/api/pump/command3`,
   correlation:    `${BASE_URL}/api/analytics/correlation`,
   authSetup:     `${BASE_URL}/api/auth/setup`,
   authLogin:     `${BASE_URL}/api/auth/login`,
@@ -266,6 +267,9 @@ export type PumpCommand = 'MANUAL_ON' | 'MANUAL_OFF' | 'AUTO';
 /** Two manual-only commands for Pump 2. */
 export type Pump2Command = 'MANUAL_ON' | 'MANUAL_OFF';
 
+/** Two manual-only commands for Pump 3. */
+export type Pump3Command = 'MANUAL_ON' | 'MANUAL_OFF';
+
 /**
  * Sends a pump control command to the backend, which publishes it to the
  * ESP32 via MQTT. Requires operator or admin role.
@@ -292,6 +296,20 @@ export async function sendPump2Command(command: Pump2Command): Promise<void> {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error ?? `POST /api/pump/command2 failed: ${res.status}`);
+  }
+}
+
+/**
+ * Sends a manual-only pump command for Pump 3 (MANUAL_ON / MANUAL_OFF).
+ */
+export async function sendPump3Command(command: Pump3Command): Promise<void> {
+  const res = await apiFetch(ENDPOINTS.pump3Command, {
+    method: 'POST',
+    body:   JSON.stringify({ command }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error ?? `POST /api/pump/command3 failed: ${res.status}`);
   }
 }
 
