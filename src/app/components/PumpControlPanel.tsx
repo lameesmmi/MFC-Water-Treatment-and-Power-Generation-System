@@ -1,6 +1,6 @@
 import { Power, TrendingUp, Cpu, Hand, Loader2 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import type { PumpCommand, Pump2Command } from '@/app/services/api';
+import type { PumpCommand, Pump2Command, Pump3Command } from '@/app/services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,6 +15,9 @@ interface PumpControlPanelProps {
   pump2Mode:      Pump2Command;
   isPump2Sending: boolean;
   onPump2Command: (command: Pump2Command) => void;
+  pump3Mode:      Pump3Command;
+  isPump3Sending: boolean;
+  onPump3Command: (command: Pump3Command) => void;
 }
 
 // ─── Sub-component: Segmented Toggle ─────────────────────────────────────────
@@ -79,6 +82,9 @@ export function PumpControlPanel({
   pump2Mode,
   isPump2Sending,
   onPump2Command,
+  pump3Mode,
+  isPump3Sending,
+  onPump3Command,
 }: PumpControlPanelProps) {
   const isAuto   = pumpMode === 'AUTO';
   const isManual = !isAuto;
@@ -88,9 +94,11 @@ export function PumpControlPanel({
     (pumpMode === 'AUTO' && systemSafe);
 
   const pump2On = pump2Mode === 'MANUAL_ON';
+  const pump3On = pump3Mode === 'MANUAL_ON';
 
   const ctrl1Disabled = !canControl || isSending;
   const ctrl2Disabled = !canControl || isPump2Sending;
+  const ctrl3Disabled = !canControl || isPump3Sending;
 
   return (
     <div className="bg-card rounded-lg p-2 border border-border h-full flex flex-col">
@@ -99,7 +107,7 @@ export function PumpControlPanel({
         <h2 className="text-sm font-semibold text-card-foreground">Pump Control</h2>
       </div>
 
-      {/* ── Two equal pump cards ──────────────────────────────────────────── */}
+      {/* ── Three equal pump cards ───────────────────────────────────────── */}
       <div className="flex gap-2 flex-shrink-0">
 
         {/* ── Water-in (Pump 1) ─────────────────────────────────────────── */}
@@ -221,6 +229,59 @@ export function PumpControlPanel({
               disabled={ctrl2Disabled}
               onLeft={() => onPump2Command('MANUAL_OFF')}
               onRight={() => onPump2Command('MANUAL_ON')}
+              leftActiveClass="bg-red-500"
+              rightActiveClass="bg-blue-600"
+            />
+          </div>
+        </div>
+
+        {/* ── Pump 3 ───────────────────────────────────────────────────── */}
+        <div className="flex-1 rounded-lg border border-border bg-muted/30 p-2 flex flex-col gap-2">
+
+          {/* Status row */}
+          <div className="flex items-center gap-2">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-500 ${
+              pump3On
+                ? 'bg-green-500/10 border-2 border-green-500'
+                : 'bg-red-500/10 border-2 border-red-500'
+            }`}>
+              <Power className={`w-4 h-4 ${
+                pump3On
+                  ? 'text-green-500 dark:text-green-400 animate-pulse'
+                  : 'text-red-500 dark:text-red-400'
+              }`} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] text-muted-foreground font-medium">Pump 3</div>
+              <div className={`text-xs font-bold ${pump3On ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                {pump3On ? 'ON' : 'OFF'}
+              </div>
+            </div>
+            {isPump3Sending && <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin flex-shrink-0" />}
+          </div>
+
+          {/* Mode label — manual only */}
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <span className="text-[10px] font-medium text-orange-500">Manual Control Only</span>
+            </div>
+            {/* Spacer matching the SegmentedToggle height so power toggles align */}
+            <div className="h-[26px]" />
+          </div>
+
+          {/* Power toggle */}
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <Power className={`w-3 h-3 ${pump3On ? 'text-green-500' : 'text-red-500'}`} />
+              <span className="text-[10px] font-medium text-foreground">Power</span>
+            </div>
+            <SegmentedToggle
+              leftLabel="OFF"
+              rightLabel="ON"
+              leftActive={!pump3On}
+              disabled={ctrl3Disabled}
+              onLeft={() => onPump3Command('MANUAL_OFF')}
+              onRight={() => onPump3Command('MANUAL_ON')}
               leftActiveClass="bg-red-500"
               rightActiveClass="bg-blue-600"
             />

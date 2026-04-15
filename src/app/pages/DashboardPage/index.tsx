@@ -3,8 +3,8 @@ import { PreTreatmentPanel }  from '@/app/components/PreTreatmentPanel';
 import { PostTreatmentPanel } from '@/app/components/PostTreatmentPanel';
 import { PumpControlPanel }   from '@/app/components/PumpControlPanel';
 import { HistoricalPanel }    from '@/app/components/HistoricalPanel';
-import { fetchHistoricalReadings, sendPumpCommand, sendPump2Command, fetchSettings } from '@/app/services/api';
-import type { PumpCommand, Pump2Command, SystemSettings } from '@/app/services/api';
+import { fetchHistoricalReadings, sendPumpCommand, sendPump2Command, sendPump3Command, fetchSettings } from '@/app/services/api';
+import type { PumpCommand, Pump2Command, Pump3Command, SystemSettings } from '@/app/services/api';
 import { getSocket } from '@/app/services/socket';
 import { useAuth }            from '@/app/contexts/AuthContext';
 import { useLiveTelemetry }   from './useLiveTelemetry';
@@ -21,12 +21,13 @@ export default function DashboardPage() {
     socketConnected, isLive,
     sensorData, sensorConnected, valveStatus,
     flowHistory, historicalData,
-    pumpMode, pump2Mode,
+    pumpMode, pump2Mode, pump3Mode,
   } = useLiveTelemetry();
 
   const [historicalSeed, setHistoricalSeed] = useState(historicalData);
   const [isPumpSending, setIsPumpSending]   = useState(false);
   const [isPump2Sending, setIsPump2Sending] = useState(false);
+  const [isPump3Sending, setIsPump3Sending] = useState(false);
 
   // Thresholds loaded from Settings — seeded with safe defaults until the API responds.
   const [thresholds, setThresholds] = useState<SystemSettings['thresholds']>({
@@ -92,6 +93,17 @@ export default function DashboardPage() {
     }
   };
 
+  const handlePump3Command = async (command: Pump3Command) => {
+    setIsPump3Sending(true);
+    try {
+      await sendPump3Command(command);
+    } catch (err) {
+      console.error('[Dashboard] Pump 3 command failed:', err);
+    } finally {
+      setIsPump3Sending(false);
+    }
+  };
+
   return (
     <div className="h-screen w-full bg-background text-foreground overflow-hidden flex flex-col lg:overflow-hidden overflow-y-auto">
       <DashboardHeader isLive={isLive} socketConnected={socketConnected} />
@@ -139,6 +151,9 @@ export default function DashboardPage() {
               pump2Mode={pump2Mode}
               isPump2Sending={isPump2Sending}
               onPump2Command={handlePump2Command}
+              pump3Mode={pump3Mode}
+              isPump3Sending={isPump3Sending}
+              onPump3Command={handlePump3Command}
             />
           </div>
         </div>
