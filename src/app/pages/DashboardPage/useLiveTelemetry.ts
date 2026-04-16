@@ -34,20 +34,63 @@ export function useLiveTelemetry(): LiveTelemetry {
 
   const lastDataRef = useRef<number>(0);
   const flowTimeRef = useRef(0);
+  // Per-sensor last-seen timestamps. A sensor is "connected" only while its
+  // timestamp is within SENSOR_TIMEOUT_MS — not just because it appeared in
+  // the latest message. This prevents sensors from flashing offline whenever
+  // another ESP32 publishes a partial payload that omits them.
+  const lastSeenRef = useRef<Record<keyof SensorConnectionMap, number>>({
+    ph: 0, flowRate: 0, tds: 0, salinity: 0,
+    conductivity: 0, temperature: 0, voltage: 0, current: 0,
+  });
 
   useEffect(() => {
     const socket = getSocket();
+
+    const buildConnectionMap = (): SensorConnectionMap => {
+      const now = Date.now();
+      const ls  = lastSeenRef.current;
+      return {
+        ph:           ls.ph           > 0 && now - ls.ph           < SENSOR_TIMEOUT_MS,
+        flowRate:     ls.flowRate     > 0 && now - ls.flowRate     < SENSOR_TIMEOUT_MS,
+        tds:          ls.tds          > 0 && now - ls.tds          < SENSOR_TIMEOUT_MS,
+        salinity:     ls.salinity     > 0 && now - ls.salinity     < SENSOR_TIMEOUT_MS,
+        conductivity: ls.conductivity > 0 && now - ls.conductivity < SENSOR_TIMEOUT_MS,
+        temperature:  ls.temperature  > 0 && now - ls.temperature  < SENSOR_TIMEOUT_MS,
+        voltage:      ls.voltage      > 0 && now - ls.voltage      < SENSOR_TIMEOUT_MS,
+        current:      ls.current      > 0 && now - ls.current      < SENSOR_TIMEOUT_MS,
+      };
+    };
+
+    const resetLastSeen = () => {
+      lastSeenRef.current = {
+        ph: 0, flowRate: 0, tds: 0, salinity: 0,
+        conductivity: 0, temperature: 0, voltage: 0, current: 0,
+      };
+    };
 
     const onConnect    = () => setSocketConnected(true);
     const onDisconnect = () => {
       setSocketConnected(false);
       setIsLive(false);
+      resetLastSeen();
       setSensorConnected(ALL_OFFLINE);
     };
 
     const onTelemetry = (data: Record<string, number | string>) => {
-      lastDataRef.current = Date.now();
+      const now = Date.now();
+      lastDataRef.current = now;
       setIsLive(true);
+
+      // Stamp each sensor that appears in this message
+      const ls = lastSeenRef.current;
+      if (data.ph           != null) ls.ph           = now;
+      if (data.flow_rate    != null) ls.flowRate      = now;
+      if (data.tds          != null) ls.tds           = now;
+      if (data.salinity     != null) ls.salinity      = now;
+      if (data.conductivity != null) ls.conductivity  = now;
+      if (data.temperature  != null) ls.temperature   = now;
+      if (data.voltage      != null) ls.voltage       = now;
+      if (data.current      != null) ls.current       = now;
 
       // Merge incoming fields — absent sensors keep their last value
       setSensorData(prev => ({
@@ -66,16 +109,10 @@ export function useLiveTelemetry(): LiveTelemetry {
         setValveStatus(data.valve_status as 'OPEN' | 'CLOSED');
       }
 
-      setSensorConnected({
-        ph:           data.ph           != null,
-        flowRate:     data.flow_rate    != null,
-        tds:          data.tds          != null,
-        salinity:     data.salinity     != null,
-        conductivity: data.conductivity != null,
-        temperature:  data.temperature  != null,
-        voltage:      data.voltage      != null,
-        current:      data.current      != null,
-      });
+      // Rebuild connection map from per-sensor timestamps, not message presence.
+      // This means a sensor stays "connected" across partial messages from other
+      // ESP32 clients — it only goes offline after SENSOR_TIMEOUT_MS of silence.
+      setSensorConnected(buildConnectionMap());
 
       if (data.flow_rate != null) {
         setFlowHistory(prev => {
@@ -112,11 +149,16 @@ export function useLiveTelemetry(): LiveTelemetry {
     socket.on('pump2_command',  onPump2Command);
     socket.on('pump3_command',  onPump3Command);
 
-    // Drop isLive if no packet arrives within the timeout window
+    // Every 3 s: mark fully offline if no data arrived in SENSOR_TIMEOUT_MS,
+    // OR refresh the connection map so individually-silent sensors time out
+    // even while other sensors continue publishing.
     const offlineTimer = setInterval(() => {
       if (lastDataRef.current > 0 && Date.now() - lastDataRef.current > SENSOR_TIMEOUT_MS) {
         setIsLive(false);
+        resetLastSeen();
         setSensorConnected(ALL_OFFLINE);
+      } else {
+        setSensorConnected(buildConnectionMap());
       }
     }, 3000);
 
