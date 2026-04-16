@@ -264,11 +264,11 @@ export async function fetchCorrelation(
 /** Three commands the ESP32 understands on the Pump 1 command topic. */
 export type PumpCommand = 'MANUAL_ON' | 'MANUAL_OFF' | 'AUTO';
 
-/** Two manual-only commands for Pump 2. */
-export type Pump2Command = 'MANUAL_ON' | 'MANUAL_OFF';
+/** Commands for Pump 2 — manual or automatic. */
+export type Pump2Command = 'MANUAL_ON' | 'MANUAL_OFF' | 'AUTO';
 
-/** Two manual-only commands for Pump 3. */
-export type Pump3Command = 'MANUAL_ON' | 'MANUAL_OFF';
+/** Commands for Pump 3 — manual or automatic. */
+export type Pump3Command = 'MANUAL_ON' | 'MANUAL_OFF' | 'AUTO';
 
 /**
  * Sends a pump control command to the backend, which publishes it to the

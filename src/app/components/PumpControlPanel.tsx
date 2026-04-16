@@ -93,8 +93,12 @@ export function PumpControlPanel({
     pumpMode === 'MANUAL_ON' ||
     (pumpMode === 'AUTO' && systemSafe);
 
-  const pump2On = pump2Mode === 'MANUAL_ON';
-  const pump3On = pump3Mode === 'MANUAL_ON';
+  const isPump2Auto = pump2Mode === 'AUTO';
+  const isPump3Auto = pump3Mode === 'AUTO';
+  // In AUTO mode the ESP32 controls the pump; show it as ON so the indicator
+  // reflects that the automatic loop is active.
+  const pump2On = pump2Mode === 'MANUAL_ON' || isPump2Auto;
+  const pump3On = pump3Mode === 'MANUAL_ON' || isPump3Auto;
 
   const ctrl1Disabled = !canControl || isSending;
   const ctrl2Disabled = !canControl || isPump2Sending;
@@ -207,26 +211,41 @@ export function PumpControlPanel({
             {isPump2Sending && <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin flex-shrink-0" />}
           </div>
 
-          {/* Mode label — manual only, no toggle (spacer matches pump 1 mode toggle height) */}
+          {/* Mode toggle */}
           <div>
             <div className="flex items-center gap-1 mb-1">
-              <span className="text-[10px] font-medium text-orange-500">Manual Control Only</span>
+              {!isPump2Auto
+                ? <Hand className="w-3 h-3 text-orange-500" />
+                : <Cpu  className="w-3 h-3 text-green-500"  />
+              }
+              <span className={`text-[10px] font-medium ${!isPump2Auto ? 'text-orange-500' : 'text-green-500 dark:text-green-400'}`}>
+                {!isPump2Auto ? 'Manual' : 'Automatic'}
+              </span>
             </div>
-            {/* Spacer matching the SegmentedToggle height so power toggles align */}
-            <div className="h-[26px]" />
+            <SegmentedToggle
+              leftLabel="AUTO"
+              rightLabel="MANUAL"
+              leftActive={isPump2Auto}
+              disabled={ctrl2Disabled}
+              onLeft={() => onPump2Command('AUTO')}
+              onRight={() => onPump2Command('MANUAL_OFF')}
+              leftActiveClass="bg-green-600"
+              rightActiveClass="bg-orange-500"
+            />
           </div>
 
           {/* Power toggle */}
           <div>
             <div className="flex items-center gap-1 mb-1">
-              <Power className={`w-3 h-3 ${pump2On ? 'text-green-500' : 'text-red-500'}`} />
-              <span className="text-[10px] font-medium text-foreground">Power</span>
+              <Power className={`w-3 h-3 ${isPump2Auto ? 'text-muted-foreground' : pump2On ? 'text-green-500' : 'text-red-500'}`} />
+              <span className={`text-[10px] font-medium ${isPump2Auto ? 'text-muted-foreground' : 'text-foreground'}`}>Power</span>
             </div>
             <SegmentedToggle
               leftLabel="OFF"
               rightLabel="ON"
               leftActive={!pump2On}
-              disabled={ctrl2Disabled}
+              disabled={ctrl2Disabled || isPump2Auto}
+              dimmed={isPump2Auto}
               onLeft={() => onPump2Command('MANUAL_OFF')}
               onRight={() => onPump2Command('MANUAL_ON')}
               leftActiveClass="bg-red-500"
@@ -260,26 +279,41 @@ export function PumpControlPanel({
             {isPump3Sending && <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin flex-shrink-0" />}
           </div>
 
-          {/* Mode label — manual only */}
+          {/* Mode toggle */}
           <div>
             <div className="flex items-center gap-1 mb-1">
-              <span className="text-[10px] font-medium text-orange-500">Manual Control Only</span>
+              {!isPump3Auto
+                ? <Hand className="w-3 h-3 text-orange-500" />
+                : <Cpu  className="w-3 h-3 text-green-500"  />
+              }
+              <span className={`text-[10px] font-medium ${!isPump3Auto ? 'text-orange-500' : 'text-green-500 dark:text-green-400'}`}>
+                {!isPump3Auto ? 'Manual' : 'Automatic'}
+              </span>
             </div>
-            {/* Spacer matching the SegmentedToggle height so power toggles align */}
-            <div className="h-[26px]" />
+            <SegmentedToggle
+              leftLabel="AUTO"
+              rightLabel="MANUAL"
+              leftActive={isPump3Auto}
+              disabled={ctrl3Disabled}
+              onLeft={() => onPump3Command('AUTO')}
+              onRight={() => onPump3Command('MANUAL_OFF')}
+              leftActiveClass="bg-green-600"
+              rightActiveClass="bg-orange-500"
+            />
           </div>
 
           {/* Power toggle */}
           <div>
             <div className="flex items-center gap-1 mb-1">
-              <Power className={`w-3 h-3 ${pump3On ? 'text-green-500' : 'text-red-500'}`} />
-              <span className="text-[10px] font-medium text-foreground">Power</span>
+              <Power className={`w-3 h-3 ${isPump3Auto ? 'text-muted-foreground' : pump3On ? 'text-green-500' : 'text-red-500'}`} />
+              <span className={`text-[10px] font-medium ${isPump3Auto ? 'text-muted-foreground' : 'text-foreground'}`}>Power</span>
             </div>
             <SegmentedToggle
               leftLabel="OFF"
               rightLabel="ON"
               leftActive={!pump3On}
-              disabled={ctrl3Disabled}
+              disabled={ctrl3Disabled || isPump3Auto}
+              dimmed={isPump3Auto}
               onLeft={() => onPump3Command('MANUAL_OFF')}
               onRight={() => onPump3Command('MANUAL_ON')}
               leftActiveClass="bg-red-500"
