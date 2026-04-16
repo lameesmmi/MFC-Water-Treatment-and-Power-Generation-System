@@ -142,12 +142,21 @@ export function useLiveTelemetry(): LiveTelemetry {
     const onPump2Command = ({ command }: { command: Pump2Command }) => setPump2Mode(command);
     const onPump3Command = ({ command }: { command: Pump3Command }) => setPump3Mode(command);
 
-    socket.on('connect',        onConnect);
-    socket.on('disconnect',     onDisconnect);
-    socket.on('live_telemetry', onTelemetry);
-    socket.on('pump_command',   onPumpCommand);
-    socket.on('pump2_command',  onPump2Command);
-    socket.on('pump3_command',  onPump3Command);
+    // Sent by the server immediately on connect so every new tab/client sees
+    // the current pump state without waiting for the next MQTT message.
+    const onPumpStateSync = (state: { pump1: PumpCommand; pump2: Pump2Command; pump3: Pump3Command }) => {
+      setPumpMode(state.pump1);
+      setPump2Mode(state.pump2);
+      setPump3Mode(state.pump3);
+    };
+
+    socket.on('connect',         onConnect);
+    socket.on('disconnect',      onDisconnect);
+    socket.on('live_telemetry',  onTelemetry);
+    socket.on('pump_command',    onPumpCommand);
+    socket.on('pump2_command',   onPump2Command);
+    socket.on('pump3_command',   onPump3Command);
+    socket.on('pump_state_sync', onPumpStateSync);
 
     // Every 3 s: mark fully offline if no data arrived in SENSOR_TIMEOUT_MS,
     // OR refresh the connection map so individually-silent sensors time out
@@ -163,12 +172,13 @@ export function useLiveTelemetry(): LiveTelemetry {
     }, 3000);
 
     return () => {
-      socket.off('connect',        onConnect);
-      socket.off('disconnect',     onDisconnect);
-      socket.off('live_telemetry', onTelemetry);
-      socket.off('pump_command',   onPumpCommand);
-      socket.off('pump2_command',  onPump2Command);
-      socket.off('pump3_command',  onPump3Command);
+      socket.off('connect',         onConnect);
+      socket.off('disconnect',      onDisconnect);
+      socket.off('live_telemetry',  onTelemetry);
+      socket.off('pump_command',    onPumpCommand);
+      socket.off('pump2_command',   onPump2Command);
+      socket.off('pump3_command',   onPump3Command);
+      socket.off('pump_state_sync', onPumpStateSync);
       clearInterval(offlineTimer);
     };
   }, []);
