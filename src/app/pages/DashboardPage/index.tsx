@@ -62,11 +62,16 @@ export default function DashboardPage() {
   const mergedHistorical = historicalData.length > 0 ? historicalData : historicalSeed;
 
   // System safety checks using user-configured thresholds (not hardcoded).
-  const phSafe          = sensorData.ph >= thresholds.ph.min && sensorData.ph <= thresholds.ph.max;
-  const flowRateSafe    = sensorData.flowRate >= thresholds.flow_rate.min && sensorData.flowRate <= thresholds.flow_rate.max;
-  const tdsSafe         = sensorData.tds <= thresholds.tds.max;
-  const temperatureSafe = sensorData.temperature >= thresholds.temperature.min && sensorData.temperature <= thresholds.temperature.max;
-  const systemSafe      = phSafe && flowRateSafe && tdsSafe && temperatureSafe;
+  // A disconnected sensor is not treated as unsafe — only connected sensors can
+  // trigger the unsafe state. If no safety-relevant sensor is online yet, the
+  // status is unknown (null) so the badge doesn't show a false "unsafe" warning.
+  const phSafe          = !sensorConnected.ph          || (sensorData.ph >= thresholds.ph.min && sensorData.ph <= thresholds.ph.max);
+  const flowRateSafe    = !sensorConnected.flowRate     || (sensorData.flowRate >= thresholds.flow_rate.min && sensorData.flowRate <= thresholds.flow_rate.max);
+  const tdsSafe         = !sensorConnected.tds          || sensorData.tds <= thresholds.tds.max;
+  const temperatureSafe = !sensorConnected.temperature  || (sensorData.temperature >= thresholds.temperature.min && sensorData.temperature <= thresholds.temperature.max);
+  const anySafetyOnline = sensorConnected.ph || sensorConnected.flowRate || sensorConnected.tds || sensorConnected.temperature;
+  // null = unknown (no relevant sensors online yet)
+  const systemSafe: boolean | null = anySafetyOnline ? (phSafe && flowRateSafe && tdsSafe && temperatureSafe) : null;
 
   // Send a pump command.
   // The toggle only moves once the broker echoes the message back and
