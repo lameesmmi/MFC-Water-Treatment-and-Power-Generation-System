@@ -23,8 +23,8 @@ export function PostTreatmentPanel({ voltage, current, connected }: PostTreatmen
 
       <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
         <div className="grid grid-cols-2 gap-2 flex-shrink-0">
-          <SensorDisplay label="Voltage" value={voltage} unit="V" status={voltageStatus} decimals={2} />
-          <SensorDisplay label="Current" value={current} unit="A" status={currentStatus} decimals={3} />
+          <SensorDisplay label="Voltage" value={voltage} unit="V" status={voltageStatus} decimals={4} />
+          <SensorDisplay label="Current" value={current} unit="A" status={currentStatus} decimals={4} />
         </div>
 
         <div className={`flex-1 min-h-0 border-2 rounded-lg p-2 flex flex-col items-center justify-center overflow-hidden ${
@@ -37,7 +37,7 @@ export function PostTreatmentPanel({ voltage, current, connected }: PostTreatmen
             Power Output
           </div>
           <div className={`text-2xl font-bold ${powerOffline ? 'text-muted-foreground' : 'text-green-600 dark:text-green-400'}`}>
-            {powerOffline ? '--' : power.toFixed(3)}
+            {powerOffline ? '--' : power.toFixed(4)}
           </div>
           <div className="text-xs text-muted-foreground">Watts</div>
         </div>
