@@ -8,7 +8,7 @@ interface PumpControlPanelProps {
   pumpMode:       'AUTO' | 'MANUAL_ON' | 'MANUAL_OFF';
   flowRate:       number;
   flowHistory:    Array<{ time: number; flow: number }>;
-  systemSafe:     boolean;
+  systemSafe:     boolean | null;
   isSending:      boolean;
   canControl:     boolean;
   onCommand:      (command: PumpCommand) => void;
@@ -328,25 +328,27 @@ export function PumpControlPanel({
       )}
 
       {/* ── Water-in System Status Badge ─────────────────────────────────── */}
-      <div className={`mt-2 px-2 py-1 rounded flex-shrink-0 ${
-        systemSafe
-          ? 'bg-green-500/10 border border-green-600 dark:border-green-700'
-          : 'bg-red-500/10 border border-red-600 dark:border-red-700'
-      }`}>
-        <div className="text-[10px] text-muted-foreground mb-0.5">Water-in status</div>
-        <div className={`text-xs font-semibold ${
+      {systemSafe !== null && (
+        <div className={`mt-2 px-2 py-1 rounded flex-shrink-0 ${
           systemSafe
-            ? 'text-green-600 dark:text-green-400'
-            : 'text-red-600 dark:text-red-400'
+            ? 'bg-green-500/10 border border-green-600 dark:border-green-700'
+            : 'bg-red-500/10 border border-red-600 dark:border-red-700'
         }`}>
-          {systemSafe ? '✓ Water safe for MFC' : '⚠ Water is unsafe to enter MFC'}
-        </div>
-        {!systemSafe && pumpMode === 'AUTO' && (
-          <div className="text-xs text-red-500 dark:text-red-300 mt-0.5">
-            Autoshutdown active
+          <div className="text-[10px] text-muted-foreground mb-0.5">Water-in status</div>
+          <div className={`text-xs font-semibold ${
+            systemSafe
+              ? 'text-green-600 dark:text-green-400'
+              : 'text-red-600 dark:text-red-400'
+          }`}>
+            {systemSafe ? '✓ Water safe for MFC' : '⚠ Water is unsafe to enter MFC'}
           </div>
-        )}
-      </div>
+          {!systemSafe && pumpMode === 'AUTO' && (
+            <div className="text-xs text-red-500 dark:text-red-300 mt-0.5">
+              Autoshutdown active
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
