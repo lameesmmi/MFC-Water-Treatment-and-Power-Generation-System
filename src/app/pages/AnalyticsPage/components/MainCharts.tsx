@@ -16,6 +16,7 @@ const C = {
   fail:     '#f87171',          // red-400   — semantic fail
   ph:       '#60a5fa',          // blue-400  — pH line
   temp:     '#fb923c',          // orange-400 — temperature line
+  voltage:  '#c084fc',          // purple-400 — voltage line
 } as const;
 
 const AXIS_STYLE = { fontSize: 8, fill: 'var(--muted-foreground)' } as const;
@@ -101,6 +102,31 @@ export function MainCharts({ data }: Props) {
             fill="url(#tdsGrad)"
             dot={false}
             name="TDS (mg/L)"
+          />
+        </AreaChart>
+      </ChartCard>
+
+      {/* ── Voltage Over Time ───────────────────────────────────────────────── */}
+      <ChartCard title="Voltage Over Time (V)">
+        <AreaChart data={data.sensorTrends}>
+          <defs>
+            <linearGradient id="voltageGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  style={{ stopColor: C.voltage, stopOpacity: 0.25 }} />
+              <stop offset="95%" style={{ stopColor: C.voltage, stopOpacity: 0    }} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+          <XAxis dataKey="time" tick={AXIS_STYLE} interval="preserveStartEnd" />
+          <YAxis tick={AXIS_STYLE} width={42} />
+          <Tooltip {...TOOLTIP_STYLE} />
+          <Area
+            type="monotone"
+            dataKey="voltage"
+            stroke={C.voltage}
+            strokeWidth={2}
+            fill="url(#voltageGrad)"
+            dot={false}
+            name="Avg Voltage (V)"
           />
         </AreaChart>
       </ChartCard>
