@@ -114,7 +114,7 @@ export interface AnalyticsData {
   };
   powerOverTime:     { time: string; avgPower: number; energyWh: number }[];
   eorOverTime:       { time: string; pass: number; fail: number }[];
-  sensorTrends:      { time: string; ph: number; tds: number; temperature: number }[];
+  sensorTrends:      { time: string; ph: number; tds: number; temperature: number; voltage: number }[];
   failuresBySensor:  { sensor: string; count: number }[];
   alertStats: {
     bySensor:        { sensor: string; count: number }[];
