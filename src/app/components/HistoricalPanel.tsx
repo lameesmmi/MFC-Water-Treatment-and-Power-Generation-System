@@ -143,6 +143,7 @@ export function HistoricalPanel({ historicalData }: HistoricalPanelProps) {
                   stroke={sensor.color}
                   strokeWidth={2}
                   dot={false}
+                  connectNulls
                   name={sensor.label}
                 />
               )
