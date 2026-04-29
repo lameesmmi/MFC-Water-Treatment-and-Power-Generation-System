@@ -140,7 +140,7 @@ export default function DashboardPage() {
 
           {/* Historical chart — 2 cols */}
           <div className="min-h-[260px] lg:min-h-0 lg:col-span-2 overflow-hidden">
-            <HistoricalPanel historicalData={mergedHistorical} />
+            <HistoricalPanel liveData={mergedHistorical} />
           </div>
 
           {/* Pump control */}
