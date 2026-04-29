@@ -11,36 +11,7 @@ interface Props {
 export function AlertStats({ data }: Props) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* EOR failures by sensor */}
-      <div className="bg-card rounded-lg border border-border p-3 flex flex-col gap-2">
-        <h2 className="text-sm font-semibold flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-orange-500" />
-          EOR Failures by Sensor
-        </h2>
-        {data.failuresBySensor.length === 0 ? (
-          <div className="flex items-center justify-center py-8 text-muted-foreground text-xs">
-            No failures recorded in this period
-          </div>
-        ) : (
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                layout="vertical"
-                data={data.failuresBySensor.map(f => ({
-                  ...f,
-                  sensor: SENSOR_LABELS[f.sensor] ?? f.sensor,
-                }))}
-              >
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis type="number" tick={{ fontSize: 8 }} allowDecimals={false} />
-                <YAxis type="category" dataKey="sensor" tick={{ fontSize: 9 }} width={65} />
-                <Tooltip {...TOOLTIP_STYLE} />
-                <Bar dataKey="count" fill="#f97316" radius={[0, 2, 2, 0]} name="Failures" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
+    
 
       {/* Alert statistics */}
       <div className="bg-card rounded-lg border border-border p-3 flex flex-col gap-3">
