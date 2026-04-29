@@ -55,11 +55,21 @@ export function HistoricalPanel({ historicalData }: HistoricalPanelProps) {
     setVisibleSensors(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const lastEntry = historicalData[historicalData.length - 1];
+  const lastDate = lastEntry?.timestamp
+    ? new Date(lastEntry.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+
   return (
     <div className="bg-card rounded-lg p-2 border border-border h-full flex flex-col overflow-hidden">
       {/* Header + Legend — fixed, doesn't grow */}
       <div className="flex items-start justify-between mb-1 flex-shrink-0 gap-2">
-        <h2 className="text-sm font-semibold text-card-foreground whitespace-nowrap">Historical Trends (24h)</h2>
+        <div className="flex flex-col">
+          <h2 className="text-sm font-semibold text-card-foreground whitespace-nowrap">Historical Trends (24h)</h2>
+          {lastDate && (
+            <span className="text-[10px] text-muted-foreground">Last data: {lastDate}</span>
+          )}
+        </div>
 
         <div className="flex items-center gap-1.5 min-w-0">
           <div className="flex flex-wrap gap-1 justify-end">

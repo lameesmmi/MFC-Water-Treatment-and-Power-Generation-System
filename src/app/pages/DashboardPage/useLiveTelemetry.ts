@@ -42,6 +42,13 @@ export function useLiveTelemetry(): LiveTelemetry {
     ph: 0, flowRate: 0, tds: 0, salinity: 0,
     conductivity: 0, temperature: 0, voltage: 0, current: 0,
   });
+  // Mirrors sensorData synchronously so the debounced historical flush can
+  // read fully-merged values without chasing async state.
+  const latestSensorRef   = useRef<SensorData>({ ...DEFAULT_SENSOR_DATA });
+  const latestTimestampRef = useRef<string>('');
+  // Debounce handle: multiple ESP32s publishing in quick succession produce ONE
+  // merged historical entry instead of several partial ones.
+  const histDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
@@ -92,9 +99,10 @@ export function useLiveTelemetry(): LiveTelemetry {
       if (data.voltage      != null) ls.voltage       = now;
       if (data.current      != null) ls.current       = now;
 
-      // Merge incoming fields — absent sensors keep their last value
-      setSensorData(prev => ({
-        ...prev,
+      // Merge incoming fields — absent sensors keep their last value.
+      // Also mirror into latestSensorRef so the debounced flush sees merged values.
+      const merged: SensorData = {
+        ...latestSensorRef.current,
         ...(data.ph           != null && { ph:           data.ph           as number }),
         ...(data.flow_rate    != null && { flowRate:     data.flow_rate    as number }),
         ...(data.tds          != null && { tds:          data.tds          as number }),
@@ -103,7 +111,10 @@ export function useLiveTelemetry(): LiveTelemetry {
         ...(data.temperature  != null && { temperature:  data.temperature  as number }),
         ...(data.voltage      != null && { voltage:      data.voltage      as number }),
         ...(data.current      != null && { current:      data.current      as number }),
-      }));
+      };
+      latestSensorRef.current = merged;
+      if (data.timestamp != null) latestTimestampRef.current = data.timestamp as string;
+      setSensorData(merged);
 
       if (data.valve_status != null) {
         setValveStatus(data.valve_status as 'OPEN' | 'CLOSED');
@@ -121,20 +132,27 @@ export function useLiveTelemetry(): LiveTelemetry {
         });
       }
 
-      const ts    = new Date(data.timestamp as string);
-      const entry: HistoricalData = {
-        timestamp:    data.timestamp    as string,
-        time:         ts.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        ph:           data.ph           as number,
-        flowRate:     data.flow_rate    as number,
-        tds:          data.tds          as number,
-        salinity:     data.salinity     as number,
-        conductivity: data.conductivity as number,
-        temperature:  data.temperature  as number,
-        voltage:      data.voltage      as number,
-        current:      data.current      as number,
-      };
-      setHistoricalData(prev => [...prev.slice(-99), entry]);
+      // Debounce: wait 500 ms after the last ESP32 message so all devices in one
+      // publish cycle contribute to a single merged entry rather than N partial ones.
+      if (histDebounceRef.current) clearTimeout(histDebounceRef.current);
+      histDebounceRef.current = setTimeout(() => {
+        const rawTs = latestTimestampRef.current;
+        const ts    = rawTs ? new Date(rawTs) : new Date();
+        const snap  = latestSensorRef.current;
+        const entry: HistoricalData = {
+          timestamp:    rawTs || new Date().toISOString(),
+          time:         ts.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          ph:           snap.ph,
+          flowRate:     snap.flowRate,
+          tds:          snap.tds,
+          salinity:     snap.salinity,
+          conductivity: snap.conductivity,
+          temperature:  snap.temperature,
+          voltage:      snap.voltage,
+          current:      snap.current,
+        };
+        setHistoricalData(prev => [...prev.slice(-99), entry]);
+      }, 500);
     };
 
     // Sync pump mode when another client sends a command
@@ -180,6 +198,7 @@ export function useLiveTelemetry(): LiveTelemetry {
       socket.off('pump3_command',   onPump3Command);
       socket.off('pump_state_sync', onPumpStateSync);
       clearInterval(offlineTimer);
+      if (histDebounceRef.current) clearTimeout(histDebounceRef.current);
     };
   }, []);
 
